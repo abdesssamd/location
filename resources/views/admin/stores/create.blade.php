@@ -68,6 +68,32 @@
             @error('color') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
         </div>
 
+        <div class="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4">
+            <h3 class="text-sm font-semibold text-zinc-900">Administrateur du magasin</h3>
+            <p class="mt-1 text-xs text-zinc-500">Un compte administrateur sera créé et recevra un email de bienvenue.</p>
+            <div class="mt-4 grid gap-5 sm:grid-cols-2">
+                <div class="space-y-2">
+                    <label for="admin_name" class="text-sm font-medium text-zinc-700">Nom</label>
+                    <input id="admin_name" name="admin_name" value="{{ old('admin_name') }}" required class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                    @error('admin_name') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="space-y-2">
+                    <label for="admin_email" class="text-sm font-medium text-zinc-700">Email</label>
+                    <input id="admin_email" name="admin_email" type="email" value="{{ old('admin_email') }}" required class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                    @error('admin_email') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="space-y-2">
+                    <label for="admin_password" class="text-sm font-medium text-zinc-700">Mot de passe</label>
+                    <input id="admin_password" name="admin_password" type="password" required class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                    @error('admin_password') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="space-y-2">
+                    <label for="admin_password_confirmation" class="text-sm font-medium text-zinc-700">Confirmer le mot de passe</label>
+                    <input id="admin_password_confirmation" name="admin_password_confirmation" type="password" required class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                </div>
+            </div>
+        </div>
+
         <div class="flex gap-3 pt-2">
             <button type="submit" class="rounded-xl bg-brand-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700">
                 Créer le magasin

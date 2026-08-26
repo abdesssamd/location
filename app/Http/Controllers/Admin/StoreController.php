@@ -40,6 +40,9 @@ class StoreController extends Controller
             'manager_name' => ['nullable', 'string', 'max:255'],
             'currency' => ['nullable', 'string', 'max:8'],
             'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'admin_name' => ['required', 'string', 'max:255'],
+            'admin_email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'admin_password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $data['token'] = ReferenceGenerator::storeToken();
@@ -54,11 +57,22 @@ class StoreController extends Controller
             \App\Services\SubscriptionService::createSubscription($store, $trialPlan, \App\Models\Subscription::STATUS_TRIAL, 14, auth()->id());
         }
 
+        $admin = User::create([
+            'store_id' => $store->id,
+            'name' => $data['admin_name'],
+            'email' => $data['admin_email'],
+            'password' => $data['admin_password'],
+            'is_active' => true,
+            'locale' => 'fr',
+        ]);
+        $admin->assignRole('admin');
+        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['admin_password']));
+
         AuditLogger::log('store.created', $store, null, $store->getAttributes(), null);
 
         return redirect()
             ->route('admin.stores.show', $store)
-            ->with('status', 'Magasin créé avec succès.');
+            ->with('status', 'Magasin créé avec succès. Un email a été envoyé à l\'administrateur.');
     }
 
     public function show(Store $store): View
@@ -129,6 +143,7 @@ class StoreController extends Controller
         ]);
 
         $admin->assignRole('admin');
+        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
 
         AuditLogger::log('store.admin_created', $admin, null, ['email' => $admin->email], null);
 
