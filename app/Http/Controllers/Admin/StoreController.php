@@ -36,13 +36,11 @@ class StoreController extends Controller
             'wilaya' => ['nullable', 'string', 'max:100'],
             'commune' => ['nullable', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'manager_name' => ['nullable', 'string', 'max:255'],
             'currency' => ['nullable', 'string', 'max:8'],
             'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'admin_name' => ['required', 'string', 'max:255'],
-            'admin_email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'admin_password' => ['required', 'string', 'min:8', 'confirmed'],
+            'admin_password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
         $data['token'] = ReferenceGenerator::storeToken();
@@ -57,16 +55,18 @@ class StoreController extends Controller
             \App\Services\SubscriptionService::createSubscription($store, $trialPlan, \App\Models\Subscription::STATUS_TRIAL, 14, auth()->id());
         }
 
+        $adminPassword = $data['admin_password'] ?: Str::password(12);
+
         $admin = User::create([
             'store_id' => $store->id,
-            'name' => $data['admin_name'],
-            'email' => $data['admin_email'],
-            'password' => $data['admin_password'],
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $adminPassword,
             'is_active' => true,
             'locale' => 'fr',
         ]);
         $admin->assignRole('admin');
-        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['admin_password']));
+        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $adminPassword));
 
         AuditLogger::log('store.created', $store, null, $store->getAttributes(), null);
 
