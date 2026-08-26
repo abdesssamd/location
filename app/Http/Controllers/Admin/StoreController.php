@@ -66,7 +66,13 @@ class StoreController extends Controller
             'locale' => 'fr',
         ]);
         $admin->assignRole('admin');
-        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $adminPassword));
+
+        try {
+            $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $adminPassword));
+        } catch (\Throwable $e) {
+            report($e);
+            session()->flash('warning', 'Magasin créé, mais l\'email de bienvenue n\'a pas pu être envoyé (vérifiez la configuration mail).');
+        }
 
         AuditLogger::log('store.created', $store, null, $store->getAttributes(), null);
 
@@ -143,7 +149,13 @@ class StoreController extends Controller
         ]);
 
         $admin->assignRole('admin');
-        $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
+
+        try {
+            $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
+        } catch (\Throwable $e) {
+            report($e);
+            session()->flash('warning', 'Administrateur créé, mais l\'email de bienvenue n\'a pas pu être envoyé (vérifiez la configuration mail).');
+        }
 
         AuditLogger::log('store.admin_created', $admin, null, ['email' => $admin->email], null);
 
