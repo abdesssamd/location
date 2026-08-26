@@ -4,6 +4,7 @@ namespace App\Livewire\Rentals;
 
 use App\Models\Customer;
 use App\Models\Pack;
+use App\Models\Store;
 use App\Models\Product;
 use App\Models\Rental;
 use App\Models\RentalItem;
@@ -45,9 +46,17 @@ class RentalForm extends Component
     public string $new_email = '';
     public string $new_wilaya = '';
     public string $new_commune = '';
+    public bool $needsStore = false;
+    public ?int $new_store_id = null;
 
     public function mount(mixed $rental = null): void
     {
+        $this->needsStore = StoreContext::id() === null;
+
+        if ($this->needsStore) {
+            $this->new_store_id = (int) (session('admin_store_id', Store::where('status', 'active')->oldest()->value('id') ?? 0)) ?: null;
+        }
+
         $this->start_date = now()->addDay()->toDateString();
         $this->end_date = now()->addDays(2)->toDateString();
 
@@ -123,8 +132,16 @@ class RentalForm extends Component
             'new_commune' => ['nullable', 'string', 'max:120'],
         ]);
 
+        $storeId = StoreContext::id() ?? $this->new_store_id;
+
+        if (! $storeId) {
+            session()->flash('error', 'Veuillez sélectionner un magasin.');
+
+            return;
+        }
+
         $customer = Customer::create([
-            'store_id' => StoreContext::id(),
+            'store_id' => $storeId,
             'first_name' => $data['new_first_name'],
             'last_name' => $data['new_last_name'],
             'phone' => $data['new_phone'],
@@ -524,7 +541,7 @@ class RentalForm extends Component
                 ->limit(8)->get()
             : collect();
 
-        $packs = $this->pack_search
+        $packResults = $this->pack_search
             ? Pack::query()
                 ->with('items.product')
                 ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
@@ -566,7 +583,7 @@ class RentalForm extends Component
         return view('livewire.rentals.rental-form', compact(
             'customers',
             'products',
-            'packs',
+            'packResults',
             'picked',
             'selectedCustomer',
             'subtotal',

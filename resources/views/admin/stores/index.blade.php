@@ -39,6 +39,9 @@
                             <span class="badge-red">Suspendu</span>
                         @endif
                         <div class="flex gap-1">
+                            <a href="{{ route('admin.stores.show', $store) }}" class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" wire:navigate title="Voir la boutique">
+                                <flux:icon.eye variant="mini" />
+                            </a>
                             <a href="{{ route('admin.stores.edit', $store) }}" class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" wire:navigate>
                                 <flux:icon.pencil-square variant="mini" />
                             </a>

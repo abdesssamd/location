@@ -34,6 +34,18 @@
                     <button wire:click="$set('showForm', false)" class="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"><flux:icon.x-mark variant="mini" /></button>
                 </div>
                 <form wire:submit="save" class="mt-4 grid gap-4 md:grid-cols-2">
+                    @if ($needsStore)
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-medium text-zinc-700">Magasin *</label>
+                            <select wire:model="store_id" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none">
+                                <option value="">— Choisir —</option>
+                                @foreach (\App\Models\Store::where('status', 'active')->orderBy('name')->get() as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('store_id') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-zinc-700">Prénom *</label>
                         <input wire:model="first_name" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />

@@ -3,6 +3,7 @@
 namespace App\Livewire\Customers;
 
 use App\Models\Customer;
+use App\Models\Store;
 use App\Services\AuditLogger;
 use App\Services\StoreContext;
 use Livewire\Attributes\Layout;
@@ -19,9 +20,17 @@ class CustomerList extends Component
 
     public bool $showForm = false;
     public ?int $editingId = null;
+    public bool $needsStore = false;
+    public ?int $store_id = null;
 
     public function mount(): void
     {
+        $this->needsStore = StoreContext::id() === null;
+
+        if ($this->needsStore) {
+            $this->store_id = (int) (session('admin_store_id', Store::where('status', 'active')->oldest()->value('id') ?? 0)) ?: null;
+        }
+
         if (request()->routeIs('customers.create')) {
             $this->openCreate();
         } elseif (request()->routeIs('customers.edit')) {
@@ -119,14 +128,22 @@ class CustomerList extends Component
             AuditLogger::updated($customer, $old, 'customer.updated');
             $message = 'Client modifié.';
         } else {
-            $subscription = \App\Services\SubscriptionService::store(StoreContext::id());
+            $storeId = StoreContext::id() ?? $this->store_id;
+
+            if (! $storeId) {
+                session()->flash('error', 'Veuillez sélectionner un magasin.');
+
+                return;
+            }
+
+            $subscription = \App\Services\SubscriptionService::store($storeId);
             if (! $subscription->canCreateCustomer()) {
                 session()->flash('error', $subscription->limitMessage('customer'));
 
                 return;
             }
 
-            $data['store_id'] = StoreContext::id();
+            $data['store_id'] = $storeId;
             $customer = Customer::create($data);
             AuditLogger::created($customer, 'customer.created');
             $message = 'Client créé.';

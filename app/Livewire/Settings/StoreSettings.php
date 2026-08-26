@@ -17,6 +17,7 @@ class StoreSettings extends Component
 
     public ?Store $store = null;
     public $selectedStoreId = null;
+    public bool $needsStore = false;
 
     public string $name = '';
     public string $address = '';
@@ -37,10 +38,12 @@ class StoreSettings extends Component
 
     public function mount(): void
     {
+        $this->needsStore = StoreContext::id() === null;
+
         $storeId = StoreContext::id();
 
-        if (Auth::user()?->is_super_admin) {
-            $storeId = (int) (session('admin_store_id', $storeId ?? Store::query()->oldest()->value('id') ?? 0));
+        if (! $storeId) {
+            $storeId = (int) (session('admin_store_id', Store::query()->oldest()->value('id') ?? 0));
             if ($storeId) {
                 StoreContext::set($storeId);
             }
@@ -56,10 +59,6 @@ class StoreSettings extends Component
 
     public function selectStore(): void
     {
-        if (! Auth::user()?->is_super_admin) {
-            return;
-        }
-
         session(['admin_store_id' => (int) $this->selectedStoreId]);
         StoreContext::set((int) $this->selectedStoreId);
 

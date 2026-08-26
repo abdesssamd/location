@@ -63,6 +63,18 @@
                                     <button type="button" wire:click="closeCustomerModal" class="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100"><flux:icon.x-mark variant="mini" /></button>
                                 </div>
                                 <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                    @if ($needsStore)
+                                        <div class="space-y-1 sm:col-span-2">
+                                            <label class="text-xs text-zinc-600">Magasin *</label>
+                                            <select wire:model="new_store_id" class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none">
+                                                <option value="">— Choisir —</option>
+                                                @foreach (\App\Models\Store::where('status', 'active')->orderBy('name')->get() as $s)
+                                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('new_store_id') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                    @endif
                                     <div class="space-y-1">
                                         <label class="text-xs text-zinc-600">Prénom *</label>
                                         <input wire:model="new_first_name" placeholder="Prénom" class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none" />
@@ -161,9 +173,9 @@
                                 <flux:icon.magnifying-glass class="pointer-events-none absolute left-3 top-2.5 size-4 text-zinc-400" />
                                 <input wire:model.live.debounce.250ms="pack_search" placeholder="Rechercher un pack par nom ou référence..." class="w-full rounded-xl border border-zinc-300 py-2 pl-9 pr-3 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
                             </div>
-                            @if ($pack_search && $packs->isNotEmpty())
+                            @if ($pack_search && $packResults->isNotEmpty())
                                 <div class="mt-2 overflow-hidden rounded-xl border border-zinc-200">
-                                    @foreach ($packs as $pack)
+                                    @foreach ($packResults as $pack)
                                         @php
                                             $normal = $pack->normalPrice();
                                             $final = $pack->finalPrice();

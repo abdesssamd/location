@@ -9,12 +9,12 @@
             <x-flash :status="session('status')" />
         @endif
 
-        @if (Auth::user()->is_super_admin)
+        @if ($needsStore)
             <div class="card card-pad">
                 <div class="flex flex-wrap items-center gap-3">
                     <label class="text-sm font-medium text-zinc-700">Magasin concerné</label>
                     <select wire:model="selectedStoreId" wire:change="selectStore" class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none">
-                        @foreach (\App\Models\Store::orderBy('name')->get() as $s)
+                        @foreach (\App\Models\Store::where('status', 'active')->orderBy('name')->get() as $s)
                             <option value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
                     </select>
