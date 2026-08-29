@@ -129,10 +129,37 @@ class RentalShow extends Component
             return;
         }
 
+        $this->releaseStock();
+
         $old = $this->rental->getAttributes();
         $this->rental->update(['status' => 'cancelled']);
         AuditLogger::updated($this->rental, $old, 'rental.cancelled');
         session()->flash('status', 'Réservation annulée.');
+    }
+
+    /**
+     * Restitue le stock des articles d'une location (annulation).
+     */
+    protected function releaseStock(): void
+    {
+        foreach ($this->rental->items as $item) {
+            $product = Product::find($item->product_id);
+            if (! $product) {
+                continue;
+            }
+
+            $product->increment('quantity', $item->quantity);
+
+            StockMovement::create([
+                'store_id' => $product->store_id ?? StoreContext::id(),
+                'product_id' => $product->id,
+                'user_id' => auth()->id(),
+                'type' => 'in',
+                'quantity' => $item->quantity,
+                'reason' => 'Annulation réservation '.$this->rental->reference,
+                'date' => now(),
+            ]);
+        }
     }
 
     public function recordPayment(): void
@@ -256,6 +283,9 @@ class RentalShow extends Component
                 default => ($product->quantity > 0 ? Product::STATUS_AVAILABLE : Product::STATUS_OFFLINE),
             };
             $product->save();
+
+            // Restituer le stock disponible (sauf perte déjà gérée plus haut)
+            $product->increment('quantity', $item->quantity);
 
             StockMovement::create([
                 'store_id' => $product->store_id ?? StoreContext::id(),

@@ -51,6 +51,7 @@ class PaymentManager extends Component
         ]);
 
         $rental = Rental::findOrFail($this->rental_id);
+        $this->authorize('view', $rental);
 
         if ($this->type === 'refund') {
             if ((int) $this->amount > $rental->paid_amount) {

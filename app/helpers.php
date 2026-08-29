@@ -42,10 +42,10 @@ if (! function_exists('money')) {
     /**
      * Formate un montant selon la devise de la boutique courante.
      */
-    function money(int|float|string $amount, ?string $currency = null): string
+    function money(int|float|string|null $amount, ?string $currency = null): string
     {
         $currency ??= store_currency();
-        $value = (int) round((float) $amount);
+        $value = (int) round((float) ($amount ?? 0));
 
         return currency_symbol($currency).' '.number_format($value, 0, ',', ' ');
     }

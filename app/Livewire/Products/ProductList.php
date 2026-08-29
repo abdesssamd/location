@@ -36,6 +36,7 @@ class ProductList extends Component
     public function deleteProduct(int $productId): void
     {
         $product = Product::findOrFail($productId);
+        $this->authorize('delete', $product);
         AuditLogger::deleted($product, 'product.deleted');
         $product->delete();
         session()->flash('status', 'Article supprimé.');
@@ -44,6 +45,7 @@ class ProductList extends Component
     public function duplicateProduct(int $productId): void
     {
         $original = Product::with('images')->findOrFail($productId);
+        $this->authorize('create', $original);
         $copy = $original->replicate();
         $copy->name = $original->name.' (copie)';
         $copy->reference = $this->suggestReference();
@@ -66,6 +68,7 @@ class ProductList extends Component
     public function recordStockMovement(int $productId, string $type): void
     {
         $product = Product::findOrFail($productId);
+        $this->authorize('update', $product);
 
         $delta = match ($type) {
             'in' => +1,

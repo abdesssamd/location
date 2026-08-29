@@ -30,6 +30,7 @@ class PackList extends Component
     public function archive(int $packId): void
     {
         $pack = Pack::findOrFail($packId);
+        $this->authorize('update', $pack);
         $old = $pack->getAttributes();
         $pack->update([
             'status' => Pack::STATUS_ARCHIVED,
@@ -43,6 +44,7 @@ class PackList extends Component
     public function duplicate(int $packId): void
     {
         $original = Pack::with(['items', 'images'])->findOrFail($packId);
+        $this->authorize('create', $original);
 
         $copy = $original->replicate();
         $copy->name = $original->name.' (copie)';

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Pack;
 use App\Models\PackItem;
@@ -284,4 +285,96 @@ it('le super admin cree un pack en choisissant le magasin', function () {
 
     $pack = Pack::where('reference', 'PACK-SA')->firstOrFail();
     expect($pack->store_id)->toBe($this->store->id);
+});
+
+function createCategoryPack(int $storeId, string $reference, array $categoryIds, array $overrides = []): Pack
+{
+    $pack = Pack::create(array_merge([
+        'store_id' => $storeId,
+        'name' => 'Pack Catégorie',
+        'reference' => $reference,
+        'pricing_mode' => Pack::PRICING_FIXED,
+        'pack_price' => 4500,
+        'caution' => 5000,
+        'status' => Pack::STATUS_ACTIVE,
+    ], $overrides));
+
+    foreach ($categoryIds as $categoryId) {
+        PackItem::create([
+            'pack_id' => $pack->id,
+            'category_id' => $categoryId,
+            'quantity' => 1,
+            'selection_mode' => 'auto',
+        ]);
+    }
+
+    return $pack;
+}
+
+it('cree un pack par categories et calcule le prix via articles resolus', function () {
+    $catCostume = Category::create(['store_id' => $this->store->id, 'name' => 'Costumes CAT']);
+    $catChemise = Category::create(['store_id' => $this->store->id, 'name' => 'Chemises CAT']);
+    $catChauss = Category::create(['store_id' => $this->store->id, 'name' => 'Chaussures CAT']);
+
+    Product::create(['store_id' => $this->store->id, 'name' => 'Costume CAT', 'reference' => 'C-CAT', 'category_id' => $catCostume->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 5, 'status' => 'available']);
+    Product::create(['store_id' => $this->store->id, 'name' => 'Chemise CAT', 'reference' => 'CH-CAT', 'category_id' => $catChemise->id, 'rental_price' => 1000, 'caution_price' => 2000, 'quantity' => 8, 'status' => 'available']);
+    Product::create(['store_id' => $this->store->id, 'name' => 'Chaussure CAT', 'reference' => 'S-CAT', 'category_id' => $catChauss->id, 'rental_price' => 1500, 'caution_price' => 5000, 'quantity' => 10, 'status' => 'available']);
+
+    $pack = createCategoryPack($this->store->id, 'PACK-CAT', [$catCostume->id, $catChemise->id, $catChauss->id]);
+
+    // Prix normal = somme des prix des articles résolus (1 par catégorie)
+    expect($pack->normalPrice())->toBe(5500);
+    expect($pack->finalPrice())->toBe(4500);
+    expect($pack->savingAmount())->toBe(1000);
+    expect($pack->items()->count())->toBe(3);
+});
+
+it('loue un pack par categories en resolvant un article disponible par categorie', function () {
+    $catCostume = Category::create(['store_id' => $this->store->id, 'name' => 'Costumes RCAT']);
+    $catChauss = Category::create(['store_id' => $this->store->id, 'name' => 'Chaussures RCAT']);
+
+    $costumeCat = Product::create(['store_id' => $this->store->id, 'name' => 'Costume RCAT', 'reference' => 'C-RCAT', 'category_id' => $catCostume->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 5, 'status' => 'available']);
+    $chaussCat = Product::create(['store_id' => $this->store->id, 'name' => 'Chaussure RCAT', 'reference' => 'S-RCAT', 'category_id' => $catChauss->id, 'rental_price' => 1500, 'caution_price' => 5000, 'quantity' => 10, 'status' => 'available']);
+
+    $pack = createCategoryPack($this->store->id, 'PACK-RCAT', [$catCostume->id, $catChauss->id], [
+        'pack_price' => 4000,
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', now()->addDay()->toDateString())
+        ->set('end_date', now()->addDays(3)->toDateString())
+        ->set('packs', [['pack_id' => $pack->id, 'quantity' => 1, 'selected_products' => []]])
+        ->call('save');
+
+    $rental = Rental::where('customer_id', $this->customer->id)->latest('id')->firstOrFail();
+
+    // 2 lignes réelles (une par catégorie), stock déduit sur les articles résolus
+    expect($rental->items()->count())->toBe(2);
+    expect($rental->items()->where('is_pack_component', true)->count())->toBe(2);
+    expect($costumeCat->refresh()->quantity)->toBe(4);
+    expect($chaussCat->refresh()->quantity)->toBe(9);
+
+    // Prix du pack : 4000
+    expect($rental->total)->toBe(4000);
+    expect($rental->pack_savings)->toBe(500);
+});
+
+it('refuse la location dun pack par categorie si aucun article dispo', function () {
+    $catCostume = Category::create(['store_id' => $this->store->id, 'name' => 'Costumes XCAT']);
+
+    Product::create(['store_id' => $this->store->id, 'name' => 'Costume XCAT', 'reference' => 'C-XCAT', 'category_id' => $catCostume->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 0, 'status' => 'offline']);
+
+    $pack = createCategoryPack($this->store->id, 'PACK-XCAT', [$catCostume->id]);
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', now()->addDay()->toDateString())
+        ->set('end_date', now()->addDays(3)->toDateString())
+        ->set('packs', [['pack_id' => $pack->id, 'quantity' => 1, 'selected_products' => []]])
+        ->call('save');
+
+    expect(Rental::where('customer_id', $this->customer->id)->count())->toBe(0);
 });

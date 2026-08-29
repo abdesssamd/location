@@ -123,11 +123,13 @@ class CustomerList extends Component
 
         if ($this->editingId) {
             $customer = Customer::findOrFail($this->editingId);
+            $this->authorize('update', $customer);
             $old = $customer->getAttributes();
             $customer->update($data);
             AuditLogger::updated($customer, $old, 'customer.updated');
             $message = 'Client modifié.';
         } else {
+            $this->authorize('create', Customer::class);
             $storeId = StoreContext::id() ?? $this->store_id;
 
             if (! $storeId) {
@@ -157,12 +159,14 @@ class CustomerList extends Component
     public function toggleFavorite(int $id): void
     {
         $customer = Customer::findOrFail($id);
+        $this->authorize('update', $customer);
         $customer->update(['favorite' => ! $customer->favorite]);
     }
 
     public function deleteCustomer(int $id): void
     {
         $customer = Customer::findOrFail($id);
+        $this->authorize('delete', $customer);
         AuditLogger::deleted($customer, 'customer.deleted');
         $customer->delete();
         session()->flash('status', 'Client supprimé.');

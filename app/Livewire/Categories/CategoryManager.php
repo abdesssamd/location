@@ -37,10 +37,12 @@ class CategoryManager extends Component
 
         if ($this->editingId) {
             $category = Category::findOrFail($this->editingId);
+            $this->authorize('update', $category);
             $old = $category->getAttributes();
             $category->update($data);
             AuditLogger::updated($category, $old, 'category.updated');
         } else {
+            $this->authorize('create', Category::class);
             $data['store_id'] = StoreContext::id() ?? $this->store_id;
             $category = Category::create($data);
             AuditLogger::created($category, 'category.created');
@@ -63,6 +65,7 @@ class CategoryManager extends Component
     public function delete(int $id): void
     {
         $category = Category::findOrFail($id);
+        $this->authorize('delete', $category);
         AuditLogger::deleted($category, 'category.deleted');
         $category->delete();
         session()->flash('status', 'Catégorie supprimée.');

@@ -35,6 +35,7 @@ it('le super admin peut creer un magasin', function () {
         ->post(route('admin.stores.store'), [
             'name' => 'Nouveau Magasin',
             'slug' => 'nouveau-magasin',
+            'email' => 'nouveau@magasin.dz',
             'currency' => 'DA',
         ])
         ->assertRedirect();

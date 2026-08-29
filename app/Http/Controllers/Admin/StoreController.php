@@ -55,7 +55,7 @@ class StoreController extends Controller
             \App\Services\SubscriptionService::createSubscription($store, $trialPlan, \App\Models\Subscription::STATUS_TRIAL, 14, auth()->id());
         }
 
-        $adminPassword = $data['admin_password'] ?: Str::password(12);
+        $adminPassword = $data['admin_password'] ?? Str::password(12);
 
         $admin = User::create([
             'store_id' => $store->id,

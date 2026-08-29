@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Rental;
 use App\Services\StoreContext;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 
 class ContractController extends Controller

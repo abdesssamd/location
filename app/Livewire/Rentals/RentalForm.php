@@ -340,6 +340,24 @@ class RentalForm extends Component
         $oldItems = $rental->items()->get();
         $rental->items()->delete();
 
+        // Restaurer le stock des anciens articles avant de ré-appliquer le nouveau
+        foreach ($oldItems as $old) {
+            $product = Product::find((int) $old->product_id);
+            if ($product) {
+                $product->increment('quantity', $old->quantity);
+            }
+
+            StockMovement::create([
+                'store_id' => $rental->store_id ?? StoreContext::id(),
+                'product_id' => (int) $old->product_id,
+                'user_id' => auth()->id(),
+                'type' => 'in',
+                'quantity' => $old->quantity,
+                'reason' => 'Annulation édition '.$rental->reference,
+                'date' => now(),
+            ]);
+        }
+
         $old = $rental->getAttributes();
         $rental->update([
             'customer_id' => $this->customer_id,
@@ -353,7 +371,7 @@ class RentalForm extends Component
             'notes' => $this->notes ?: null,
         ]);
 
-        $this->storeItemsAndStock($rental, $rows, 'edit', 'Édition réservation');
+        $this->storeItemsAndStock($rental, $rows, 'out', 'Édition réservation');
         AuditLogger::updated($rental, $old, 'rental.updated');
 
         session()->flash('status', 'Réservation mise à jour.');
@@ -383,6 +401,11 @@ class RentalForm extends Component
             ]);
 
             if ($movementType === 'out') {
+                $product = Product::find((int) $item['product_id']);
+                if ($product) {
+                    $product->decrement('quantity', $qty);
+                }
+
                 StockMovement::create([
                     'store_id' => $rental->store_id ?? StoreContext::id(),
                     'product_id' => (int) $item['product_id'],

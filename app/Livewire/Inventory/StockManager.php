@@ -45,6 +45,7 @@ class StockManager extends Component
         ]);
 
         $product = Product::findOrFail($this->product_id);
+        $this->authorize('update', $product);
 
         $delta = match ($this->type) {
             'in', 'return' => abs((int) $this->quantity),

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 
 class ProductController extends Controller
