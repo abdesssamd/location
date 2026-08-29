@@ -99,3 +99,30 @@ it('un gestionnaire magasin voit uniquement son equipe', function () {
         ->assertSee('a@x.com')
         ->assertDontSee('b@x.com');
 });
+
+it('le super admin peut renvoyer un nouveau mot de passe a un admin de magasin', function () {
+    $superAdmin = User::where('is_super_admin', true)->first();
+    $store = Store::firstOrFail();
+    $storeAdmin = $store->users()->firstOrFail();
+    $oldHash = $storeAdmin->password;
+
+    $this->actingAs($superAdmin)
+        ->post(route('admin.stores.admins.reset-password', [$store, $storeAdmin]))
+        ->assertRedirect();
+
+    expect($storeAdmin->refresh()->password)->not->toBe($oldHash);
+});
+
+it('refuse la reinitialisation du mot de passe dun admin appartenant a un autre magasin', function () {
+    $superAdmin = User::where('is_super_admin', true)->first();
+    $storeA = Store::firstOrFail();
+    $storeB = Store::create(['name' => 'Autre Magasin', 'slug' => 'autre-'.time(), 'token' => 'tx', 'status' => 'active']);
+    $otherAdmin = User::create(['store_id' => $storeB->id, 'name' => 'Autre Admin', 'email' => 'autre-'.time().'@x.com', 'password' => 'password']);
+    $oldHash = $otherAdmin->password;
+
+    $this->actingAs($superAdmin)
+        ->post(route('admin.stores.admins.reset-password', [$storeA, $otherAdmin]))
+        ->assertNotFound();
+
+    expect($otherAdmin->refresh()->password)->toBe($oldHash);
+});

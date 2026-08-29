@@ -181,6 +181,7 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')
     Route::put('stores/{store}', [StoreController::class, 'update'])->name('stores.update');
     Route::post('stores/{store}/toggle-status', [StoreController::class, 'toggleStatus'])->name('stores.toggle-status');
     Route::post('stores/{store}/admins', [StoreController::class, 'createAdmin'])->name('stores.admins.store');
+    Route::post('stores/{store}/admins/{admin}/reset-password', [StoreController::class, 'resetAdminPassword'])->name('stores.admins.reset-password');
     Route::delete('stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
 
     Route::get('audits', [AdminAuditController::class, 'index'])->name('audits.index');

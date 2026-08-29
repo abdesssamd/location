@@ -171,4 +171,26 @@ class StoreController extends Controller
 
         return redirect()->route('admin.stores.index')->with('status', 'Magasin supprimé.');
     }
+
+    public function resetAdminPassword(Store $store, User $admin): RedirectResponse
+    {
+        if ($admin->store_id !== $store->id) {
+            abort(404);
+        }
+
+        $password = Str::password(12);
+        $admin->update(['password' => $password]);
+
+        try {
+            $admin->notify(new \App\Notifications\StoreAdminPasswordResetNotification($store, $password));
+            $message = 'Un nouveau mot de passe a été généré et envoyé à '.$admin->email.'.';
+        } catch (\Throwable $e) {
+            report($e);
+            $message = 'Nouveau mot de passe généré pour '.$admin->email.', mais l\'email n\'a pas pu être envoyé (vérifiez la configuration mail).';
+        }
+
+        AuditLogger::log('store.admin_password_reset', $admin, null, ['email' => $admin->email], null);
+
+        return back()->with('status', $message);
+    }
 }

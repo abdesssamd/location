@@ -60,7 +60,7 @@
 
             <div class="mt-5 divide-y divide-zinc-100">
                 @forelse ($admins as $admin)
-                    <div class="flex items-center justify-between py-3">
+                    <div class="flex items-center justify-between gap-3 py-3">
                         <div class="flex items-center gap-3">
                             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-700">{{ $admin->initials() }}</span>
                             <div>
@@ -68,7 +68,15 @@
                                 <p class="text-xs text-zinc-500">{{ $admin->email }}</p>
                             </div>
                         </div>
-                        <span class="badge-blue">{{ $admin->roles->pluck('name')->join(', ') }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="badge-blue">{{ $admin->roles->pluck('name')->join(', ') }}</span>
+                            <form method="POST" action="{{ route('admin.stores.admins.reset-password', [$store, $admin]) }}">
+                                @csrf
+                                <button type="submit" class="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50" title="Générer et envoyer un nouveau mot de passe">
+                                    Renvoyer un mot de passe
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 @empty
                     <p class="py-6 text-center text-sm text-zinc-500">Aucun administrateur.</p>
