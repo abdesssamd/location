@@ -51,10 +51,10 @@ class RentalForm extends Component
 
     public function mount(mixed $rental = null): void
     {
-        $this->needsStore = StoreContext::id() === null;
+        $this->needsStore = (bool) optional(auth()->user())->is_super_admin;
 
         if ($this->needsStore) {
-            $this->new_store_id = (int) (session('admin_store_id', Store::where('status', 'active')->oldest()->value('id') ?? 0)) ?: null;
+            $this->new_store_id = (int) (session('admin_store_id', StoreContext::id() ?? (Store::where('status', 'active')->oldest()->value('id') ?? 0))) ?: null;
         }
 
         $this->start_date = now()->addDay()->toDateString();
@@ -132,7 +132,9 @@ class RentalForm extends Component
             'new_commune' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $storeId = StoreContext::id() ?? $this->new_store_id;
+        $storeId = ((bool) optional(auth()->user())->is_super_admin && $this->new_store_id)
+            ? $this->new_store_id
+            : (StoreContext::id() ?? $this->new_store_id);
 
         if (! $storeId) {
             session()->flash('error', 'Veuillez sélectionner un magasin.');
@@ -544,7 +546,7 @@ class RentalForm extends Component
     {
         $customers = $this->customer_search
             ? Customer::query()
-                ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+                ->when(! $this->needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
                 ->where(function ($q) {
                     $q->where('first_name', 'like', '%'.$this->customer_search.'%')
                         ->orWhere('last_name', 'like', '%'.$this->customer_search.'%')
@@ -555,7 +557,7 @@ class RentalForm extends Component
 
         $products = $this->product_search
             ? Product::query()
-                ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+                ->when(! $this->needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
                 ->where('status', '!=', 'offline')
                 ->where(function ($q) {
                     $q->where('name', 'like', '%'.$this->product_search.'%')
@@ -567,7 +569,7 @@ class RentalForm extends Component
         $packResults = $this->pack_search
             ? Pack::query()
                 ->with('items.product')
-                ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+                ->when(! $this->needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
                 ->where('status', Pack::STATUS_ACTIVE)
                 ->where(function ($q) {
                     $q->where('name', 'like', '%'.$this->pack_search.'%')

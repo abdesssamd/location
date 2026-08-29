@@ -64,6 +64,9 @@ class ProductForm extends Component
             }
             $this->fillFromProduct();
         } else {
+            if ($this->isSuperAdmin() && ! $this->store_id && StoreContext::id()) {
+                $this->store_id = StoreContext::id();
+            }
             $this->reference = $this->suggestReference();
         }
     }
@@ -95,14 +98,24 @@ class ProductForm extends Component
 
     protected function suggestReference(): string
     {
-        $storeId = StoreContext::id() ?? $this->store_id;
+        $storeId = $this->resolveStoreId();
         $next = (int) Product::where('store_id', $storeId)->count() + 1;
 
         return sprintf('ART-%06d', $next);
     }
 
+    protected function isSuperAdmin(): bool
+    {
+        return (bool) optional(auth()->user())->is_super_admin;
+    }
+
     protected function resolveStoreId(): ?int
     {
+        // Le super admin peut choisir le magasin ; sinon le contexte courant prime
+        if ($this->isSuperAdmin() && $this->store_id) {
+            return $this->store_id;
+        }
+
         return StoreContext::id() ?? $this->store_id;
     }
 
@@ -353,7 +366,7 @@ class ProductForm extends Component
     public function render(): \Illuminate\Contracts\View\View
     {
         $categories = Category::with('children')->orderBy('name')->get();
-        $needsStore = StoreContext::id() === null;
+        $needsStore = $this->isSuperAdmin();
         $stores = $needsStore ? \App\Models\Store::where('status', 'active')->orderBy('name')->get() : collect();
         $colorPresets = self::colorPresets();
         $sizePresets = self::sizePresets();

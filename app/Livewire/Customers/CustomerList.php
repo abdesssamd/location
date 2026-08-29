@@ -25,10 +25,10 @@ class CustomerList extends Component
 
     public function mount(): void
     {
-        $this->needsStore = StoreContext::id() === null;
+        $this->needsStore = (bool) optional(auth()->user())->is_super_admin;
 
         if ($this->needsStore) {
-            $this->store_id = (int) (session('admin_store_id', Store::where('status', 'active')->oldest()->value('id') ?? 0)) ?: null;
+            $this->store_id = (int) (session('admin_store_id', StoreContext::id() ?? (Store::where('status', 'active')->oldest()->value('id') ?? 0))) ?: null;
         }
 
         if (request()->routeIs('customers.create')) {
@@ -130,7 +130,9 @@ class CustomerList extends Component
             $message = 'Client modifié.';
         } else {
             $this->authorize('create', Customer::class);
-            $storeId = StoreContext::id() ?? $this->store_id;
+            $storeId = ((bool) optional(auth()->user())->is_super_admin && $this->store_id)
+                ? $this->store_id
+                : (StoreContext::id() ?? $this->store_id);
 
             if (! $storeId) {
                 session()->flash('error', 'Veuillez sélectionner un magasin.');
@@ -175,7 +177,7 @@ class CustomerList extends Component
     public function render(): \Illuminate\Contracts\View\View
     {
         $customers = Customer::query()
-            ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+            ->when(! $this->needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
             ->when($this->search, fn ($q) => $q->where(function ($q) {
                 $q->where('first_name', 'like', '%'.$this->search.'%')
                     ->orWhere('last_name', 'like', '%'.$this->search.'%')

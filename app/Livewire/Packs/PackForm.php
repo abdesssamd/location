@@ -59,6 +59,9 @@ class PackForm extends Component
             $this->packId = $this->pack->id;
             $this->fillFromPack();
         } else {
+            if ((bool) optional(auth()->user())->is_super_admin && ! $this->store_id && StoreContext::id()) {
+                $this->store_id = StoreContext::id();
+            }
             $this->reference = $this->suggestReference();
         }
     }
@@ -238,7 +241,11 @@ class PackForm extends Component
             }
         }
 
-        $storeId = StoreContext::id() ?? $this->store_id;
+        if ((bool) optional(auth()->user())->is_super_admin && $this->store_id) {
+            $storeId = $this->store_id;
+        } else {
+            $storeId = StoreContext::id() ?? $this->store_id;
+        }
         if (! $storeId) {
             $this->addError('store_id', 'Veuillez sélectionner un magasin.');
 
@@ -380,7 +387,7 @@ class PackForm extends Component
     public function render(): \Illuminate\Contracts\View\View
     {
         $categories = Category::with('children')->orderBy('name')->get();
-        $needsStore = StoreContext::id() === null;
+        $needsStore = (bool) optional(auth()->user())->is_super_admin;
         $stores = $needsStore ? \App\Models\Store::where('status', 'active')->orderBy('name')->get() : collect();
 
         $products = $this->product_search

@@ -20,9 +20,16 @@ class CategoryManager extends Component
 
     public ?int $editingId = null;
 
+    public function booted(): void
+    {
+        if ((bool) optional(auth()->user())->is_super_admin && ! $this->store_id && ! $this->editingId && StoreContext::id()) {
+            $this->store_id = StoreContext::id();
+        }
+    }
+
     public function save(): void
     {
-        $needsStore = StoreContext::id() === null;
+        $needsStore = (bool) optional(auth()->user())->is_super_admin;
 
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -43,7 +50,9 @@ class CategoryManager extends Component
             AuditLogger::updated($category, $old, 'category.updated');
         } else {
             $this->authorize('create', Category::class);
-            $data['store_id'] = StoreContext::id() ?? $this->store_id;
+            $data['store_id'] = ((bool) optional(auth()->user())->is_super_admin && $this->store_id)
+                ? $this->store_id
+                : (StoreContext::id() ?? $this->store_id);
             $category = Category::create($data);
             AuditLogger::created($category, 'category.created');
         }
@@ -73,18 +82,18 @@ class CategoryManager extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        $needsStore = StoreContext::id() === null;
+        $needsStore = (bool) optional(auth()->user())->is_super_admin;
         $stores = $needsStore ? Store::where('status', 'active')->orderBy('name')->get() : collect();
 
         $categories = Category::with('children', 'products')
-            ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+            ->when(! $needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
             ->when($needsStore && $this->filterStoreId, fn ($q) => $q->where('store_id', $this->filterStoreId))
             ->whereNull('parent_id')
             ->orderBy('name')
             ->get();
 
         $allCategories = Category::query()
-            ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+            ->when(! $needsStore, fn ($q) => $q->where('store_id', StoreContext::id()))
             ->when($needsStore && $this->filterStoreId, fn ($q) => $q->where('store_id', $this->filterStoreId))
             ->orderBy('name')
             ->get();
