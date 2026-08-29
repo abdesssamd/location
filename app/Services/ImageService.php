@@ -9,7 +9,7 @@ class ImageService
 {
     public function store(UploadedFile $file, string $directory, int $maxWidth = 1200, int $quality = 80): string
     {
-        $disk = config('filesystems.default');
+        $disk = 'public';
         $image = imagecreatefromstring($file->getContent());
 
         if (! $image) {
@@ -38,12 +38,31 @@ class ImageService
             $image = $resized;
         }
 
-        $name = Str::random(32).'.webp';
-        $path = $directory.'/'.$name;
-        $tmp = sys_get_temp_dir().'/'.$name;
+        $webpSupported = function_exists('imagewebp')
+            && defined('IMG_WEBP')
+            && (imagetypes() & IMG_WEBP);
 
-        imagewebp($image, $tmp, $quality);
+        $ext = $webpSupported ? 'webp' : 'jpg';
+        $name = Str::random(32).'.'.$ext;
+        $path = $directory.'/'.$name;
+        $tmp = sys_get_temp_dir().DIRECTORY_SEPARATOR.$name;
+
+        if ($webpSupported) {
+            $ok = imagewebp($image, $tmp, $quality);
+        } else {
+            $bg = imagecreatetruecolor(imagesx($image), imagesy($image));
+            imagefill($bg, 0, 0, imagecolorallocate($bg, 255, 255, 255));
+            imagecopy($bg, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));
+            imagedestroy($image);
+            $image = $bg;
+            $ok = imagejpeg($image, $tmp, $quality);
+        }
+
         imagedestroy($image);
+
+        if (empty($ok) || ! file_exists($tmp)) {
+            return $file->store($directory, $disk);
+        }
 
         \Illuminate\Support\Facades\Storage::disk($disk)->put($path, file_get_contents($tmp));
 
