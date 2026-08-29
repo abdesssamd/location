@@ -53,6 +53,13 @@
     --color-accent: var(--color-brand-800);
     --color-accent-content: var(--color-brand-800);
     --color-accent-foreground: var(--color-white);
+
+    /* Palette secondaire (statuts / graphiques) */
+    --color-success: #10b981;
+    --color-info: #3b82f6;
+    --color-warning: #f59e0b;
+    --color-danger: #f43f5e;
+    --color-violet: #8b5cf6;
 }
 
 @layer theme {
@@ -63,6 +70,27 @@
     }
 }
 
+/* ===== Keyframes ===== */
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
 @layer base {
     *,
     ::after,
@@ -71,6 +99,13 @@
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
     }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        @apply bg-gradient-to-br from-slate-50 via-white to-brand-50/40 text-zinc-900 antialiased;
+        font-feature-settings: "cv11", "ss01";
+    }
 }
 
 [data-flux-field] {
@@ -78,7 +113,7 @@
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
@@ -87,39 +122,158 @@ select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
 
-/* Carte premium */
-.card {
-    @apply rounded-2xl border border-zinc-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.06)];
+/* ===== Animations utilitaires ===== */
+.animate-fade-in { animation: fade-in 0.5s ease both; }
+.animate-fade-up { animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pop-in { animation: pop-in 0.3s ease both; }
+.animate-shimmer { animation: shimmer 1.6s linear infinite; }
+
+/* Apparition décalée (staggered) */
+.stagger > * { animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.stagger > *:nth-child(4) { animation-delay: 0.22s; }
+.stagger > *:nth-child(5) { animation-delay: 0.28s; }
+.stagger > *:nth-child(6) { animation-delay: 0.34s; }
+.stagger > *:nth-child(7) { animation-delay: 0.40s; }
+.stagger > *:nth-child(8) { animation-delay: 0.46s; }
+
+/* Skeleton loader */
+.skeleton {
+    @apply rounded-xl bg-[length:400px_100%];
+    background-image: linear-gradient(90deg, #eef1f5 25%, #f8fafc 37%, #eef1f5 63%);
+    animation: shimmer 1.6s linear infinite;
 }
 
-.card-pad {
-    @apply p-5 sm:p-6;
+/* Glassmorphism */
+.glass {
+    @apply bg-white/70 backdrop-blur-xl;
 }
 
-/* Badges d'état */
-.badge-green,
-.badge-blue,
-.badge-orange,
-.badge-yellow,
-.badge-red,
-.badge-zinc,
-.badge-violet {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
-}
+@layer components {
+    /* ===== Carte premium ===== */
+    .card {
+        @apply rounded-2xl border border-zinc-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.06)] transition-all duration-300;
+    }
 
-.badge-green { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
-.badge-blue  { @apply bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20; }
-.badge-orange{ @apply bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20; }
-.badge-yellow{ @apply bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20; }
-.badge-red   { @apply bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20; }
-.badge-zinc  { @apply bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-500/20; }
-.badge-violet{ @apply bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20; }
+    .card:hover {
+        @apply shadow-[0_12px_30px_-14px_rgba(16,24,40,0.18)];
+    }
 
-/* En-tête de page */
-.page-title {
-    @apply text-2xl font-semibold tracking-tight text-zinc-900;
-}
+    .card-pad {
+        @apply p-5 sm:p-6;
+    }
 
-.page-subtitle {
-    @apply text-sm text-zinc-500;
+    /* Carte KPI (stat) */
+    .stat-card {
+        @apply relative overflow-hidden rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_-20px_rgba(16,24,40,0.28)] sm:p-6;
+    }
+
+    .stat-card::after {
+        content: "";
+        @apply pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-50/60 blur-2xl;
+    }
+
+    .stat-card__icon {
+        @apply flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm;
+    }
+
+    .stat-card__label {
+        @apply text-xs font-medium uppercase tracking-wide text-zinc-500;
+    }
+
+    .stat-card__value {
+        @apply mt-3 text-2xl font-bold tracking-tight text-zinc-900;
+    }
+
+    /* ===== Boutons ===== */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+    }
+
+    .btn-primary {
+        @apply bg-brand-800 text-white shadow-sm hover:bg-brand-700 hover:shadow-md;
+    }
+
+    .btn-soft {
+        @apply bg-brand-50 text-brand-800 hover:bg-brand-100;
+    }
+
+    .btn-ghost {
+        @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900;
+    }
+
+    .btn-danger {
+        @apply bg-rose-600 text-white shadow-sm hover:bg-rose-500;
+    }
+
+    /* ===== Titres ===== */
+    .page-title {
+        @apply text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl;
+    }
+
+    .page-subtitle {
+        @apply text-sm text-zinc-500;
+    }
+
+    .section-title {
+        @apply text-base font-semibold tracking-tight text-zinc-900;
+    }
+
+    /* ===== Tableau premium ===== */
+    .table-premium {
+        @apply w-full text-left text-sm;
+    }
+
+    .table-premium thead th {
+        @apply border-b border-zinc-200 bg-zinc-50/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500;
+    }
+
+    .table-premium tbody tr {
+        @apply transition-colors hover:bg-zinc-50/70;
+    }
+
+    .table-premium tbody td {
+        @apply border-b border-zinc-100 px-4 py-3 text-zinc-700;
+    }
+
+    /* ===== Badges d'état ===== */
+    .badge-green,
+    .badge-blue,
+    .badge-orange,
+    .badge-yellow,
+    .badge-red,
+    .badge-zinc,
+    .badge-violet {
+        @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    }
+
+    .badge-green { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
+    .badge-blue  { @apply bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20; }
+    .badge-orange{ @apply bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20; }
+    .badge-yellow{ @apply bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20; }
+    .badge-red   { @apply bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20; }
+    .badge-zinc  { @apply bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-500/20; }
+    .badge-violet{ @apply bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20; }
+
+    /* ===== Sidebar (light glass, premium) ===== */
+    [data-flux-sidebar] {
+        @apply border-r border-zinc-200/70 bg-gradient-to-b from-white via-white to-brand-50/50 text-zinc-700;
+    }
+
+    [data-flux-sidebar] [aria-current="page"],
+    [data-flux-sidebar] [data-current="true"] {
+        @apply rounded-xl bg-brand-600 text-white shadow-sm ring-1 ring-inset ring-brand-600/20;
+    }
+
+    [data-flux-sidebar] a:hover,
+    [data-flux-sidebar] button:hover {
+        @apply bg-brand-50 text-brand-800;
+    }
+
+    [data-flux-sidebar] .flux-logo,
+    [data-flux-sidebar] .brand-wordmark {
+        @apply text-brand-900;
+    }
 }

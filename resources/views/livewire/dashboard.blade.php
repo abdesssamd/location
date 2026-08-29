@@ -6,7 +6,7 @@
                 <p class="page-subtitle">Bienvenue, {{ auth()->user()->name }}.</p>
             </div>
             @can('rentals.create')
-                <a href="{{ route('rentals.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700" wire:navigate>
+                <a href="{{ route('rentals.create') }}" class="btn btn-primary" wire:navigate>
                     <flux:icon.plus variant="mini" /> Nouvelle réservation
                 </a>
             @endcan
@@ -30,21 +30,25 @@
         @endif
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Encaissé aujourd'hui</p>
-                <p class="mt-1 text-2xl font-semibold text-zinc-900">{{ money($revenueToday) }}</p>
+            <div class="stat-card animate-fade-up" style="animation-delay: 0s">
+                <div class="stat-card__icon"><flux:icon.banknotes variant="mini" /></div>
+                <p class="stat-card__label mt-4">Encaissé aujourd'hui</p>
+                <p class="stat-card__value">{{ money($revenueToday) }}</p>
             </div>
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Locations en cours</p>
-                <p class="mt-1 text-2xl font-semibold text-emerald-600">{{ $activeRentals }}</p>
+            <div class="stat-card animate-fade-up" style="animation-delay: 0.06s">
+                <div class="stat-card__icon"><flux:icon.archive-box variant="mini" /></div>
+                <p class="stat-card__label mt-4">Locations en cours</p>
+                <p class="stat-card__value text-emerald-600">{{ $activeRentals }}</p>
             </div>
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Réservations à venir</p>
-                <p class="mt-1 text-2xl font-semibold text-blue-600">{{ $reserved }}</p>
+            <div class="stat-card animate-fade-up" style="animation-delay: 0.12s">
+                <div class="stat-card__icon"><flux:icon.calendar variant="mini" /></div>
+                <p class="stat-card__label mt-4">Réservations à venir</p>
+                <p class="stat-card__value text-blue-600">{{ $reserved }}</p>
             </div>
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Stock bas</p>
-                <p class="mt-1 text-2xl font-semibold {{ $lowStock > 0 ? 'text-amber-600' : 'text-zinc-400' }}">{{ $lowStock }}</p>
+            <div class="stat-card animate-fade-up" style="animation-delay: 0.18s">
+                <div class="stat-card__icon"><flux:icon.cube variant="mini" /></div>
+                <p class="stat-card__label mt-4">Stock bas</p>
+                <p class="stat-card__value {{ $lowStock > 0 ? 'text-amber-600' : 'text-zinc-400' }}">{{ $lowStock }}</p>
             </div>
         </div>
 
@@ -67,18 +71,36 @@
             </div>
         @endif
 
-        <div class="grid gap-6 lg:grid-cols-2">
-            <div class="card card-pad">
-                <h2 class="text-sm font-semibold text-zinc-900">Évolution du chiffre d'affaires (12 mois)</h2>
-                <canvas id="revenueChart" height="120"></canvas>
+        <div class="grid gap-6 lg:grid-cols-2 stagger">
+            <div class="card card-pad animate-fade-up">
+                <h2 class="section-title">Évolution du chiffre d'affaires (12 mois)</h2>
+                @if (! empty($chartRevenue) && array_sum($chartRevenue) > 0)
+                    <div class="mt-4 rounded-xl bg-gradient-to-br from-brand-50/40 to-transparent p-3">
+                        <canvas id="revenueChart" height="120"></canvas>
+                    </div>
+                @else
+                    <div class="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-200 py-10">
+                        <div class="skeleton h-28 w-full rounded-xl"></div>
+                        <p class="text-xs text-zinc-400">Aucune donnée de chiffre d'affaires pour le moment.</p>
+                    </div>
+                @endif
             </div>
-            <div class="card card-pad">
-                <h2 class="text-sm font-semibold text-zinc-900">Articles les plus loués</h2>
-                <canvas id="topProductsChart" height="120"></canvas>
+            <div class="card card-pad animate-fade-up">
+                <h2 class="section-title">Articles les plus loués</h2>
+                @if (! empty($topProductQty) && array_sum($topProductQty) > 0)
+                    <div class="mt-4 rounded-xl bg-gradient-to-br from-brand-50/40 to-transparent p-3">
+                        <canvas id="topProductsChart" height="120"></canvas>
+                    </div>
+                @else
+                    <div class="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-200 py-10">
+                        <div class="skeleton h-28 w-full rounded-xl"></div>
+                        <p class="text-xs text-zinc-400">Aucun article loué pour le moment.</p>
+                    </div>
+                @endif
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 stagger">
             <div class="card card-pad">
                 <p class="text-xs text-zinc-500">Revenus packs</p>
                 <p class="mt-1 text-xl font-semibold text-zinc-900">{{ money($packRevenue) }}</p>
@@ -101,7 +123,7 @@
             </div>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-3">
+        <div class="grid gap-6 lg:grid-cols-3 stagger">
             <div class="card card-pad lg:col-span-2">
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-zinc-900">Retours à venir (3 jours)</h2>
@@ -157,8 +179,8 @@
                     <a href="{{ route('payments.index') }}" class="text-xs text-brand-700 hover:underline" wire:navigate>Tout voir</a>
                 @endcan
             </div>
-            <div class="mt-3 overflow-hidden rounded-xl border border-zinc-200">
-                <table class="w-full text-left text-sm">
+            <div class="mt-3 overflow-hidden rounded-xl border border-zinc-200/70">
+                <table class="table-premium">
                     <tbody class="divide-y divide-zinc-100">
                         @forelse ($recentPayments as $payment)
                             <tr class="hover:bg-zinc-50/50">

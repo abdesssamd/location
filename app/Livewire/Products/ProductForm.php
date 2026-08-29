@@ -146,6 +146,14 @@ class ProductForm extends Component
         session()->flash('status', "Catégorie « {$category->name} » créée et sélectionnée.");
     }
 
+    public function updatedStoreId(): void
+    {
+        if (! $this->productId) {
+            $this->category_id = null;
+            $this->reference = $this->suggestReference();
+        }
+    }
+
     public function updatedPhotos(): void
     {
         $this->validate([
@@ -365,7 +373,19 @@ class ProductForm extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        $categories = Category::with('children')->orderBy('name')->get();
+        $storeScope = \App\Models\Scopes\StoreScope::class;
+
+        if ($this->isSuperAdmin()) {
+            $resolvedStore = $this->resolveStoreId();
+            $categories = Category::withoutGlobalScope($storeScope)
+                ->when($resolvedStore, fn ($q) => $q->where('store_id', $resolvedStore))
+                ->with(['children' => fn ($q) => $q->withoutGlobalScope($storeScope)])
+                ->orderBy('name')
+                ->get();
+        } else {
+            $categories = Category::with('children')->orderBy('name')->get();
+        }
+
         $needsStore = $this->isSuperAdmin();
         $stores = $needsStore ? \App\Models\Store::where('status', 'active')->orderBy('name')->get() : collect();
         $colorPresets = self::colorPresets();

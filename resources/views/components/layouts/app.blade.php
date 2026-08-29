@@ -5,13 +5,13 @@
     <head>
         @include('partials.head', ['title' => $title])
     </head>
-    <body class="min-h-screen bg-[#f6f7f9] text-zinc-900 antialiased">
-        <flux:sidebar sticky stashable class="border-r border-zinc-200 bg-white">
+    <body class="min-h-screen text-zinc-900 antialiased">
+        <flux:sidebar sticky stashable class="border-r border-white/10">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
             <a href="{{ route('dashboard') }}" class="mr-5 flex items-center gap-2 px-1" wire:navigate>
                 <x-app-logo class="size-8" href="#"></x-app-logo>
-                <span class="text-lg font-semibold tracking-tight text-zinc-900">LouerPro</span>
+                <span class="brand-wordmark text-lg font-semibold tracking-tight text-brand-900">LouerPro</span>
             </a>
 
             <flux:navlist variant="outline">
@@ -203,7 +203,7 @@
             </flux:dropdown>
         </flux:header>
 
-        <flux:main>
+        <flux:main class="animate-fade-in">
             {{ $slot }}
         </flux:main>
 

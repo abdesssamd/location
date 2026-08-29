@@ -67,7 +67,7 @@
                     <input wire:model="reason" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" placeholder="Optionnel" />
                 </div>
                 <div class="flex items-end">
-                    <button type="submit" class="w-full rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Enregistrer</button>
+                    <button type="submit" class="btn btn-primary w-full">Enregistrer</button>
                 </div>
             </form>
             <p class="mt-3 text-xs text-zinc-500">Astuce : pour un ajustement, saisissez une quantité négative pour une sortie, positive pour une entrée.</p>
@@ -89,7 +89,7 @@
                 <input wire:model.live="to" type="date" class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
             </div>
 
-            <table class="w-full text-left text-sm">
+            <table class="table-premium">
                 <thead class="border-b border-zinc-100 bg-zinc-50/60 text-xs uppercase tracking-wide text-zinc-500">
                     <tr>
                         <th class="px-4 py-3">Date</th>

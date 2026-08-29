@@ -5,7 +5,7 @@
                 <h1 class="page-title">Articles</h1>
                 <p class="page-subtitle">{{ $products->total() }} article(s) au total.</p>
             </div>
-            <a href="{{ route('products.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700" wire:navigate>
+            <a href="{{ route('products.create') }}" class="btn btn-primary" wire:navigate>
                 <flux:icon.plus variant="mini" /> Nouvel article
             </a>
         </div>
@@ -86,7 +86,7 @@
             </div>
         @else
             <div class="card overflow-hidden">
-                <table class="w-full text-left text-sm">
+                <table class="table-premium">
                     <thead class="border-b border-zinc-100 bg-zinc-50/60 text-xs uppercase tracking-wide text-zinc-500">
                         <tr>
                             <th class="px-4 py-3">Photo</th>

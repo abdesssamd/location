@@ -95,9 +95,24 @@ class PackForm extends Component
         ])->toArray();
     }
 
+    protected function isSuperAdmin(): bool
+    {
+        return (bool) optional(auth()->user())->is_super_admin;
+    }
+
+    protected function resolveStoreId(): ?int
+    {
+        if ($this->isSuperAdmin() && $this->store_id) {
+            return $this->store_id;
+        }
+
+        return StoreContext::id() ?? $this->store_id;
+    }
+
     protected function suggestReference(): string
     {
-        $next = (int) Pack::query()->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))->count() + 1;
+        $storeId = $this->resolveStoreId();
+        $next = (int) Pack::query()->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->count() + 1;
 
         return sprintf('PACK-%06d', $next);
     }
