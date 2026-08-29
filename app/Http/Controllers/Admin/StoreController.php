@@ -71,7 +71,7 @@ class StoreController extends Controller
             $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $adminPassword));
         } catch (\Throwable $e) {
             report($e);
-            session()->flash('warning', 'Magasin créé, mais l\'email de bienvenue n\'a pas pu être envoyé (vérifiez la configuration mail).');
+            session()->flash('warning', 'Magasin créé, mais l\'email de bienvenue n\'a pas pu être envoyé : '.$e->getMessage());
         }
 
         AuditLogger::log('store.created', $store, null, $store->getAttributes(), null);
@@ -154,7 +154,7 @@ class StoreController extends Controller
             $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
         } catch (\Throwable $e) {
             report($e);
-            session()->flash('warning', 'Administrateur créé, mais l\'email de bienvenue n\'a pas pu être envoyé (vérifiez la configuration mail).');
+            session()->flash('warning', 'Administrateur créé, mais l\'email de bienvenue n\'a pas pu être envoyé : '.$e->getMessage());
         }
 
         AuditLogger::log('store.admin_created', $admin, null, ['email' => $admin->email], null);
@@ -186,7 +186,7 @@ class StoreController extends Controller
             $message = 'Un nouveau mot de passe a été généré et envoyé à '.$admin->email.'.';
         } catch (\Throwable $e) {
             report($e);
-            $message = 'Nouveau mot de passe généré pour '.$admin->email.', mais l\'email n\'a pas pu être envoyé (vérifiez la configuration mail).';
+            $message = 'Nouveau mot de passe généré pour '.$admin->email.', mais l\'email n\'a pas pu être envoyé : '.$e->getMessage().' — vérifiez la configuration MAIL_* (.env) et videz le cache de config (php artisan config:clear).';
         }
 
         AuditLogger::log('store.admin_password_reset', $admin, null, ['email' => $admin->email], null);
