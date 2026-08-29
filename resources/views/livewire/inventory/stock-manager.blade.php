@@ -73,7 +73,7 @@
             <p class="mt-3 text-xs text-zinc-500">Astuce : pour un ajustement, saisissez une quantité négative pour une sortie, positive pour une entrée.</p>
         </div>
 
-        <div class="card overflow-hidden">
+        <div class="card overflow-x-auto">
             <div class="flex flex-col gap-3 border-b border-zinc-100 p-4 sm:flex-row sm:items-center">
                 <div class="relative flex-1">
                     <flux:icon.magnifying-glass class="pointer-events-none absolute left-3 top-2.5 size-4 text-zinc-400" />

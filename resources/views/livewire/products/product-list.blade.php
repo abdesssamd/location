@@ -85,7 +85,7 @@
                 @endforelse
             </div>
         @else
-            <div class="card overflow-hidden">
+            <div class="card overflow-x-auto">
                 <table class="table-premium">
                     <thead class="border-b border-zinc-100 bg-zinc-50/60 text-xs uppercase tracking-wide text-zinc-500">
                         <tr>
