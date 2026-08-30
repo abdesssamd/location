@@ -47,7 +47,14 @@ class SetStoreContext
             }
         }
 
-        StoreContext::set($storeId);
+        // Un utilisateur rattaché à un magasin reste toujours en portée « magasin »,
+        // même si son store_id est absent : le scope bloque alors tout accès au
+        // lieu de s'ouvrir sur l'ensemble des magasins.
+        if ($user && ! $user->is_super_admin) {
+            StoreContext::restrict($storeId);
+        } else {
+            StoreContext::set($storeId);
+        }
 
         return $next($request);
     }

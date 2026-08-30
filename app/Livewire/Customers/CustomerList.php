@@ -135,7 +135,7 @@ class CustomerList extends Component
                 : (StoreContext::id() ?? $this->store_id);
 
             if (! $storeId) {
-                session()->flash('error', 'Veuillez sélectionner un magasin.');
+                session()->flash('error', missing_store_message('enregistrer un client'));
 
                 return;
             }

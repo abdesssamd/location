@@ -275,6 +275,13 @@
         </flux:header>
 
         <flux:main class="animate-fade-in">
+            @if (! auth()->user()->is_super_admin && ! \App\Services\StoreContext::id())
+                <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Votre compte n'est rattaché à aucun magasin : aucune donnée ne peut être affichée ni créée.
+                    Contactez votre administrateur pour qu'il rattache votre compte à un magasin.
+                </div>
+            @endif
+
             @if (session('new_token'))
                 <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                     <p class="text-sm font-medium text-emerald-800">Votre token de magasin — copiez-le maintenant, il ne sera plus affiché :</p>

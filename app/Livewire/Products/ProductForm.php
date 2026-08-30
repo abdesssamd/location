@@ -124,7 +124,8 @@ class ProductForm extends Component
         $storeId = $this->resolveStoreId();
 
         if (! $storeId) {
-            $this->addError('store_id', 'Veuillez sélectionner un magasin avant de créer une catégorie.');
+            $this->addError('store_id', missing_store_message('créer une catégorie'));
+            session()->flash('error', missing_store_message('créer une catégorie'));
 
             return;
         }

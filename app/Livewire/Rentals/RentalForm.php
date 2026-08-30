@@ -138,7 +138,7 @@ class RentalForm extends Component
             : (StoreContext::id() ?? $this->new_store_id);
 
         if (! $storeId) {
-            session()->flash('error', 'Veuillez sélectionner un magasin.');
+            session()->flash('error', missing_store_message('créer une réservation'));
 
             return;
         }

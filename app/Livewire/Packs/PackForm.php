@@ -271,7 +271,8 @@ class PackForm extends Component
             $storeId = StoreContext::id() ?? $this->store_id;
         }
         if (! $storeId) {
-            $this->addError('store_id', 'Veuillez sélectionner un magasin.');
+            $this->addError('store_id', missing_store_message('créer un pack'));
+            session()->flash('error', missing_store_message('créer un pack'));
 
             return;
         }

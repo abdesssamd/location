@@ -260,3 +260,26 @@ it('un utilisateur de magasin ne peut pas basculer le contexte', function () {
         ->post(route('store.context.switch'), ['store_id' => $this->storeB->id])
         ->assertForbidden();
 });
+
+it('un utilisateur sans magasin ne voit rien plutot que tout', function () {
+    StoreContext::set($this->storeB->id);
+    Product::create(['store_id' => $this->storeB->id, 'name' => 'Costume B2', 'reference' => 'B-2', 'rental_price' => 1000, 'caution_price' => 0, 'quantity' => 1, 'status' => 'available']);
+    StoreContext::set(null);
+
+    // Compte orphelin : store_id absent, mais pas super admin.
+    $orphelin = User::create(['name' => 'Orphelin', 'email' => 'orphelin@test.com', 'password' => 'password', 'is_active' => true]);
+    $orphelin->assignRole('admin');
+
+    $this->actingAs($orphelin)
+        ->get(route('products.index'))
+        ->assertOk()
+        ->assertDontSee('Costume B')
+        ->assertSee('rattaché à aucun magasin');
+
+    // Le scope bloque aussi les requetes directes.
+    StoreContext::restrict(null);
+    expect(Product::count())->toBe(0);
+
+    StoreContext::set(null);
+    expect(Product::count())->toBeGreaterThan(0);
+});

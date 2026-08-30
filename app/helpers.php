@@ -50,3 +50,23 @@ if (! function_exists('money')) {
         return currency_symbol($currency).' '.number_format($value, 0, ',', ' ');
     }
 }
+
+if (! function_exists('missing_store_message')) {
+    /**
+     * Message affiché quand aucun magasin n'est en contexte.
+     *
+     * « Sélectionnez un magasin » n'a de sens que pour le super admin, qui en gère
+     * plusieurs. Pour un utilisateur de magasin, l'absence de contexte signifie que
+     * son compte n'est rattaché à aucun magasin : c'est un problème de compte.
+     */
+    function missing_store_message(?string $action = null): string
+    {
+        if ((bool) optional(auth()->user())->is_super_admin) {
+            return $action
+                ? 'Sélectionnez le magasin concerné avant de '.$action.'.'
+                : 'Sélectionnez le magasin sur lequel vous travaillez.';
+        }
+
+        return 'Votre compte n\'est rattaché à aucun magasin. Contactez votre administrateur.';
+    }
+}
