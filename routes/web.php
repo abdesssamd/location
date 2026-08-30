@@ -27,6 +27,18 @@ Route::get('locale/{locale}', \App\Http\Controllers\LocaleController::class)
     ->name('locale.switch');
 
 Route::middleware(['auth'])->group(function () {
+    // Le super admin choisit le magasin sur lequel il travaille dans l'espace magasin.
+    Route::post('store-context', function (\Illuminate\Http\Request $request) {
+        abort_unless($request->user()->is_super_admin, 403);
+
+        $storeId = (int) $request->input('store_id');
+        abort_unless(\App\Models\Store::whereKey($storeId)->exists(), 404);
+
+        $request->session()->put('admin_store_id', $storeId);
+
+        return back()->with('status', 'Magasin courant : '.\App\Models\Store::whereKey($storeId)->value('name'));
+    })->name('store.context.switch');
+
     Route::get('dashboard', \App\Livewire\Dashboard::class)
         ->middleware('store.context')
         ->name('dashboard');

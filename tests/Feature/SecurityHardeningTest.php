@@ -225,3 +225,38 @@ it('M-5 : un plan retire du catalogue ne peut plus etre souscrit', function () {
         ->post(route('subscription.subscribe', $plan))
         ->assertNotFound();
 });
+
+it('le super admin travaille sur un seul magasin a la fois dans l espace magasin', function () {
+    $superAdmin = User::where('is_super_admin', true)->firstOrFail();
+
+    StoreContext::set($this->storeA->id);
+    Product::create(['store_id' => $this->storeA->id, 'name' => 'Costume A', 'reference' => 'A-9', 'rental_price' => 1000, 'caution_price' => 0, 'quantity' => 1, 'status' => 'available']);
+
+    // Selection du magasin A via le selecteur de la barre laterale.
+    $this->actingAs($superAdmin)
+        ->post(route('store.context.switch'), ['store_id' => $this->storeA->id])
+        ->assertRedirect();
+
+    $this->actingAs($superAdmin)
+        ->get(route('products.index'))
+        ->assertOk()
+        ->assertSee('Costume A')
+        ->assertDontSee('Costume B');
+
+    // Bascule sur le magasin B : les articles de A disparaissent.
+    $this->actingAs($superAdmin)
+        ->post(route('store.context.switch'), ['store_id' => $this->storeB->id])
+        ->assertRedirect();
+
+    $this->actingAs($superAdmin)
+        ->get(route('products.index'))
+        ->assertOk()
+        ->assertSee('Costume B')
+        ->assertDontSee('Costume A');
+});
+
+it('un utilisateur de magasin ne peut pas basculer le contexte', function () {
+    $this->actingAs($this->adminA)
+        ->post(route('store.context.switch'), ['store_id' => $this->storeB->id])
+        ->assertForbidden();
+});

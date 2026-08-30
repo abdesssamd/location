@@ -24,3 +24,6 @@ yarn-error.log
 /.zed
 
 /public/*.zip
+
+# Assets compiles livres avec le depot (a decompresser dans public/build)
+!/build.zip

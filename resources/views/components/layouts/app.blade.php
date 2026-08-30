@@ -15,6 +15,23 @@
             </a>
             <div class="mx-3 h-px bg-white/10"></div>
 
+            @if (auth()->user()->is_super_admin)
+                @php($switcherStores = \App\Models\Store::orderBy('name')->get(['id', 'name', 'status']))
+                <form method="POST" action="{{ route('store.context.switch') }}" class="px-3 py-3">
+                    @csrf
+                    <label for="store-switcher" class="nav-section__title">Magasin courant</label>
+                    <select id="store-switcher" name="store_id" onchange="this.form.submit()"
+                            class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none">
+                        @foreach ($switcherStores as $s)
+                            <option value="{{ $s->id }}" @selected(\App\Services\StoreContext::id() === $s->id) class="text-zinc-900">
+                                {{ $s->name }}@if ($s->status !== 'active') ({{ $s->status === 'pending' ? 'en attente' : 'suspendu' }}) @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <noscript><button type="submit" class="mt-2 w-full rounded-lg bg-white/10 px-2 py-1 text-xs text-white">Changer</button></noscript>
+                </form>
+            @endif
+
             <nav class="nav-scroll flex-1 space-y-1 px-3 py-3">
                 <p class="nav-section__title">Menu principal</p>
 

@@ -10,9 +10,7 @@
             @endif
         </div>
 
-        @if (session('status'))
-            <x-flash :status="session('status')" />
-        @endif
+        <x-flash />
 
         <div class="grid gap-6 lg:grid-cols-3">
             <div class="card card-pad lg:col-span-1">

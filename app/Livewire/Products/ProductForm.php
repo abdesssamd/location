@@ -249,7 +249,12 @@ class ProductForm extends Component
             $storeId = $this->resolveStoreId();
 
             if (! $storeId) {
+                // Le champ « magasin » n'est affiché qu'au super admin : sans ce message
+                // global, l'échec serait invisible pour un utilisateur de magasin.
                 $this->addError('store_id', 'Veuillez sélectionner un magasin.');
+                session()->flash('error', $this->isSuperAdmin()
+                    ? 'Sélectionnez le magasin auquel rattacher cet article.'
+                    : 'Votre compte n\'est rattaché à aucun magasin. Contactez votre administrateur.');
 
                 return;
             }

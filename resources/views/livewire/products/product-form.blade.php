@@ -5,6 +5,9 @@
             <p class="page-subtitle">{{ $productId ? $product->name : 'Créez un article avec ses photos, prix et stock.' }}</p>
         </div>
 
+        {{-- Erreurs globales : limite de plan, magasin manquant, échec d'autorisation --}}
+        <x-flash />
+
         <form wire:submit="save" class="space-y-6">
             <div class="grid gap-6 lg:grid-cols-3">
                 <div class="space-y-6 lg:col-span-2">
