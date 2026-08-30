@@ -189,7 +189,12 @@ class PackForm extends Component
 
     public function removeExistingPhoto(int $photoId): void
     {
-        $image = PackImage::findOrFail($photoId);
+        abort_if($this->pack === null, 404);
+        $this->authorize('update', $this->pack);
+
+        // Borne la photo au pack en cours : un identifiant arbitraire ne doit pas
+        // permettre de supprimer l'image d'un autre magasin.
+        $image = $this->pack->images()->findOrFail($photoId);
         \Illuminate\Support\Facades\Storage::disk('public')->delete($image->path);
         $image->delete();
 
@@ -203,8 +208,10 @@ class PackForm extends Component
             return;
         }
 
+        $this->authorize('update', $this->pack);
+
         PackImage::where('pack_id', $this->packId)->update(['is_primary' => false]);
-        PackImage::where('id', $photoId)->update(['is_primary' => true]);
+        PackImage::where('pack_id', $this->packId)->where('id', $photoId)->update(['is_primary' => true]);
 
         $this->existingPhotos = collect($this->existingPhotos)
             ->map(fn ($p) => ['id' => $p['id'], 'url' => $p['url'], 'is_primary' => $p['id'] === $photoId])
@@ -228,6 +235,8 @@ class PackForm extends Component
 
     public function save(): void
     {
+        $this->authorize($this->packId ? 'update' : 'create', $this->pack ?? \App\Models\Pack::class);
+
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'reference' => ['required', 'string', 'max:255'],

@@ -35,10 +35,18 @@
                         <span class="hidden text-xs text-zinc-400 sm:block">{{ $store->users_count }} employé(s)</span>
                         @if ($store->status === 'active')
                             <span class="badge-green">Actif</span>
+                        @elseif ($store->status === 'pending')
+                            <span class="badge-yellow">En attente</span>
                         @else
                             <span class="badge-red">Suspendu</span>
                         @endif
                         <div class="flex gap-1">
+                            @if ($store->status === 'pending')
+                                <form method="POST" action="{{ route('admin.stores.approve', $store) }}">
+                                    @csrf
+                                    <button type="submit" class="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-500">Accepter</button>
+                                </form>
+                            @endif
                             <a href="{{ route('admin.stores.show', $store) }}" class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" wire:navigate title="Voir la boutique">
                                 <flux:icon.eye variant="mini" />
                             </a>

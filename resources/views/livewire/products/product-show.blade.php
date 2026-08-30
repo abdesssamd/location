@@ -67,6 +67,7 @@
                     </dl>
                 </div>
 
+                @can('stock.manage')
                 <div class="card card-pad flex items-center justify-between">
                     <div>
                         <h2 class="text-sm font-semibold text-zinc-900">Statut du stock</h2>
@@ -78,6 +79,7 @@
                         @endforeach
                     </select>
                 </div>
+                @endcan
             </div>
         </div>
 

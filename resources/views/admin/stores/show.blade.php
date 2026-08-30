@@ -33,7 +33,7 @@
                     <dd>@if ($store->status === 'active') <span class="badge-green">Actif</span> @else <span class="badge-red">Suspendu</span> @endif</dd>
                 </div>
                 <div class="flex justify-between"><dt class="text-zinc-500">Slug</dt><dd class="font-medium">{{ $store->slug }}</dd></div>
-                <div class="flex justify-between"><dt class="text-zinc-500">Token</dt><dd class="font-mono text-xs">{{ $store->token }}</dd></div>
+                <div class="flex justify-between"><dt class="text-zinc-500">Token</dt><dd class="font-mono text-xs">{{ $store->token ?: '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-zinc-500">Téléphone</dt><dd>{{ $store->phone ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-zinc-500">Email</dt><dd>{{ $store->email ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-zinc-500">Adresse</dt><dd>{{ $store->wilaya ?? '—' }} {{ $store->commune ?? '' }}</dd></div>
@@ -104,7 +104,13 @@
                 @else
                     <p class="mt-2 text-sm text-rose-600">Aucun abonnement pour ce magasin.</p>
                 @endif
-                <p class="mt-2 text-xs text-zinc-500">Token actif : <span class="font-mono">{{ $activeToken?->token ?? 'AUCUN' }}</span></p>
+                <p class="mt-2 text-xs text-zinc-500">Token actif : <span class="font-mono">{{ $activeToken?->token ?? 'AUCUN' }}</span> <span class="text-zinc-400">(aperçu masqué)</span></p>
+                @if (session('new_token'))
+                    <div class="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2">
+                        <p class="text-xs font-medium text-emerald-800">Token complet — copiez-le maintenant, il ne sera plus affiché :</p>
+                        <p class="mt-1 break-all font-mono text-sm text-emerald-900">{{ session('new_token') }}</p>
+                    </div>
+                @endif
             </div>
             <div class="flex flex-wrap gap-2">
                 <form method="POST" action="{{ route('admin.stores.tokens.regenerate', $store) }}">

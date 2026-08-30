@@ -7,6 +7,7 @@ use App\Models\Rental;
 use App\Models\StockMovement;
 use App\Services\AuditLogger;
 use App\Services\StoreContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -33,6 +34,8 @@ class RentalShow extends Component
 
     public function mount(Rental $rental): void
     {
+        $this->authorize('view', $rental);
+
         $this->rental = $rental->load(['customer', 'user', 'items.product']);
         $this->paid_amount = $rental->paid_amount;
         $this->payment_method = $rental->payment_method ?? 'cash';
@@ -48,6 +51,8 @@ class RentalShow extends Component
 
     public function checkout(): void
     {
+        $this->authorize('checkout', $this->rental);
+
         if ($this->rental->status !== 'reserved') {
             return;
         }
@@ -72,6 +77,8 @@ class RentalShow extends Component
 
     public function complete(): void
     {
+        $this->authorize('complete', $this->rental);
+
         if (! in_array($this->rental->status, ['reserved', 'active'], true)) {
             return;
         }
@@ -92,16 +99,18 @@ class RentalShow extends Component
         $lateFeePerDay = (int) ($store?->late_fee_per_day ?? 0);
         $lateFee = $lateDays * $lateFeePerDay;
 
-        $this->persistReturnDetails();
-        $this->restoreStock();
+        DB::transaction(function () use ($lateFee) {
+            $this->persistReturnDetails();
+            $this->restoreStock();
 
-        $old = $this->rental->getAttributes();
-        $this->rental->update([
-            'status' => 'completed',
-            'actual_return_date' => now()->toDateString(),
-            'late_fee' => $lateFee,
-        ]);
-        AuditLogger::updated($this->rental, $old, 'rental.completed');
+            $old = $this->rental->getAttributes();
+            $this->rental->update([
+                'status' => 'completed',
+                'actual_return_date' => now()->toDateString(),
+                'late_fee' => $lateFee,
+            ]);
+            AuditLogger::updated($this->rental, $old, 'rental.completed');
+        });
 
         if ($lateFee > 0) {
             $payment = \App\Models\Payment::create([
@@ -123,6 +132,8 @@ class RentalShow extends Component
 
     public function cancel(): void
     {
+        $this->authorize('cancel', $this->rental);
+
         if ($this->rental->status !== 'reserved') {
             session()->flash('error', 'Seule une réservation peut être annulée.');
 
@@ -148,8 +159,8 @@ class RentalShow extends Component
                 continue;
             }
 
-            $product->increment('quantity', $item->quantity);
-
+            // Journal seulement : la réservation annulée libère la période,
+            // le parc (products.quantity) n'a jamais bougé.
             StockMovement::create([
                 'store_id' => $product->store_id ?? StoreContext::id(),
                 'product_id' => $product->id,
@@ -164,6 +175,8 @@ class RentalShow extends Component
 
     public function recordPayment(): void
     {
+        $this->authorize('pay', $this->rental);
+
         $this->validate([
             'paid_amount' => ['required', 'integer', 'min:0'],
             'payment_method' => ['required', 'in:cash,card,transfer,check'],
@@ -180,7 +193,8 @@ class RentalShow extends Component
 
         $proofPaths = [];
         foreach ($this->paymentProof as $proof) {
-            $proofPaths[] = Storage::disk('public')->putFile('payments', $proof);
+            $proofPaths[] = Storage::disk('local')
+                ->putFile('payments/'.($this->rental->store_id ?? StoreContext::id()), $proof);
         }
 
         $old = $this->rental->getAttributes();
@@ -214,7 +228,8 @@ class RentalShow extends Component
 
         $photoPaths = [];
         foreach ($this->returnPhotos as $photo) {
-            $photoPaths[] = Storage::disk('public')->putFile('returns', $photo);
+            $photoPaths[] = Storage::disk('local')
+                ->putFile('returns/'.($this->rental->store_id ?? StoreContext::id()), $photo);
         }
 
         foreach ($this->rental->items as $item) {
@@ -284,9 +299,8 @@ class RentalShow extends Component
             };
             $product->save();
 
-            // Restituer le stock disponible (sauf perte déjà gérée plus haut)
-            $product->increment('quantity', $item->quantity);
-
+            // Le parc n'a pas été décrémenté à la sortie : rien à restituer ici,
+            // seule la fin de la période libère la disponibilité. On journalise l'entrée.
             StockMovement::create([
                 'store_id' => $product->store_id ?? StoreContext::id(),
                 'product_id' => $product->id,

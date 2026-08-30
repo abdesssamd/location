@@ -8,8 +8,8 @@ use App\Services\StoreContext;
 use App\Services\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SubscriptionController extends Controller
@@ -50,7 +50,12 @@ class SubscriptionController extends Controller
      */
     public function subscribe(Request $request, Plan $plan): RedirectResponse
     {
+        // Un plan retiré du catalogue ne doit plus être souscrit, même par URL directe.
+        abort_unless($plan->is_active, 404);
+
         $storeId = auth()->user()->store_id ?? StoreContext::id();
+
+        abort_if($storeId === null, 403, 'Aucun magasin associé à votre compte.');
 
         $payment = SubscriptionPayment::create([
             'store_id' => $storeId,
@@ -73,7 +78,7 @@ class SubscriptionController extends Controller
     public function payOffline(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'plan_id' => ['required', 'exists:plans,id'],
+            'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_active', true)],
             'method' => ['required', 'in:'.implode(',', array_keys(SubscriptionPayment::METHODS))],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -81,11 +86,15 @@ class SubscriptionController extends Controller
         ]);
 
         $storeId = auth()->user()->store_id ?? StoreContext::id();
-        $plan = Plan::findOrFail($data['plan_id']);
+
+        abort_if($storeId === null, 403, 'Aucun magasin associé à votre compte.');
+
+        $plan = Plan::where('is_active', true)->findOrFail($data['plan_id']);
 
         $proofPath = null;
         if ($request->hasFile('proof')) {
-            $proofPath = $request->file('proof')->store('proofs/'.$storeId, 'public');
+            // Disque privé : une preuve de paiement ne doit pas être servie par /storage.
+            $proofPath = $request->file('proof')->store('proofs/'.$storeId, 'local');
         }
 
         SubscriptionPayment::create([

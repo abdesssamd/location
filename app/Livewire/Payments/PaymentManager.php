@@ -51,7 +51,7 @@ class PaymentManager extends Component
         ]);
 
         $rental = Rental::findOrFail($this->rental_id);
-        $this->authorize('view', $rental);
+        $this->authorize($this->type === 'refund' ? 'refund' : 'pay', $rental);
 
         if ($this->type === 'refund') {
             if ((int) $this->amount > $rental->paid_amount) {
@@ -70,7 +70,9 @@ class PaymentManager extends Component
 
         $proofPaths = [];
         foreach ($this->paymentProof as $proof) {
-            $proofPaths[] = \Illuminate\Support\Facades\Storage::disk('public')->putFile('payments', $proof);
+            // Disque privé : servi uniquement via la route files.payment (policy + permission).
+            $proofPaths[] = \Illuminate\Support\Facades\Storage::disk('local')
+                ->putFile('payments/'.($rental->store_id ?? StoreContext::id()), $proof);
         }
 
         $payment = Payment::create([

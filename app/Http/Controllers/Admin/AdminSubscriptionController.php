@@ -8,10 +8,10 @@ use App\Models\StoreToken;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Services\AuditLogger;
+use App\Http\Controllers\Controller;
 use App\Services\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 
 class AdminSubscriptionController extends Controller
@@ -111,7 +111,10 @@ class AdminSubscriptionController extends Controller
 
         AuditLogger::log('store.token_regenerated', $store, null, ['token' => $token->token]);
 
-        return back()->with('status', 'Nouveau token généré : '.$token->token.' L\'ancien est immédiatement invalide.');
+        // La valeur en clair n'existe qu'ici : elle est affichée une fois, jamais stockée.
+        return back()
+            ->with('status', 'Nouveau token généré. L\'ancien est immédiatement invalide.')
+            ->with('new_token', $token->plainText);
     }
 
     public function revokeToken(Request $request, Store $store): RedirectResponse

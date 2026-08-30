@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '/e0a martin/d' audit-location.html)",
+      "Bash(sed -i '/--muted: #59637244;/d' audit-location.html)"
+    ]
+  }
+}

@@ -156,10 +156,17 @@ it('loue un pack et deduit le stock des articles reels', function () {
     expect($rental->items()->where('is_pack_component', true)->count())->toBe(3);
     expect($rental->items()->first()->pack_id)->toBe($pack->id);
 
-    // Le stock réel des articles est déduit
-    expect($this->costume->refresh()->quantity)->toBe(4);
-    expect($this->chaussures->refresh()->quantity)->toBe(9);
-    expect($this->cravate->refresh()->quantity)->toBe(29);
+    // Le parc (products.quantity) ne bouge pas : c'est la disponibilité sur la
+    // période qui est engagée (sinon le stock serait deduit deux fois).
+    expect($this->costume->refresh()->quantity)->toBe(5);
+    expect($this->chaussures->refresh()->quantity)->toBe(10);
+    expect($this->cravate->refresh()->quantity)->toBe(30);
+
+    $start = now()->addDay()->toDateString();
+    $end = now()->addDays(3)->toDateString();
+    expect($this->costume->freeBetween($start, $end))->toBe(4);
+    expect($this->chaussures->freeBetween($start, $end))->toBe(9);
+    expect($this->cravate->freeBetween($start, $end))->toBe(29);
 
     // Prix du pack : 4500 (et non 5000)
     expect($rental->total)->toBe(4500);
@@ -217,7 +224,6 @@ it('affiche le pack dans le contrat avec sa composition', function () {
             'pack_name' => $pack->name,
             'is_pack_component' => true,
         ]);
-        $row['product']->decrement('quantity', 1);
     }
 
     $this->actingAs($this->user)
@@ -257,7 +263,6 @@ it('restitue le stock de chaque article au retour du pack', function () {
             'pack_name' => $pack->name,
             'is_pack_component' => true,
         ]);
-        $row['product']->decrement('quantity', 1);
     }
 
     Livewire::actingAs($this->user)
@@ -350,11 +355,13 @@ it('loue un pack par categories en resolvant un article disponible par categorie
 
     $rental = Rental::where('customer_id', $this->customer->id)->latest('id')->firstOrFail();
 
-    // 2 lignes réelles (une par catégorie), stock déduit sur les articles résolus
+    // 2 lignes réelles (une par catégorie), disponibilité engagée sur les articles résolus
     expect($rental->items()->count())->toBe(2);
     expect($rental->items()->where('is_pack_component', true)->count())->toBe(2);
-    expect($costumeCat->refresh()->quantity)->toBe(4);
-    expect($chaussCat->refresh()->quantity)->toBe(9);
+    expect($costumeCat->refresh()->quantity)->toBe(5);
+    expect($chaussCat->refresh()->quantity)->toBe(10);
+    expect($costumeCat->freeBetween(now()->addDay()->toDateString(), now()->addDays(3)->toDateString()))->toBe(4);
+    expect($chaussCat->freeBetween(now()->addDay()->toDateString(), now()->addDays(3)->toDateString()))->toBe(9);
 
     // Prix du pack : 4000
     expect($rental->total)->toBe(4000);

@@ -18,6 +18,8 @@ class ProductShow extends Component
 
     public function mount(Product $product): void
     {
+        $this->authorize('view', $product);
+
         // Pas de ->limit() dans l'eager load : MariaDB < 10.2 ne supporte pas les fonctions fenêtrées
         $this->product = $product->load(['images', 'category', 'stockMovements']);
         $this->selectedImageId = $this->product->primaryImage()?->id;
@@ -30,6 +32,8 @@ class ProductShow extends Component
 
     public function changeStatus(string $status): void
     {
+        $this->authorize('changeStatus', $this->product);
+
         if (! in_array($status, array_keys(Product::statusLabels()), true)) {
             return;
         }

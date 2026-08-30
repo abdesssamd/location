@@ -4,6 +4,7 @@ namespace App\Livewire\Team;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\StoreContext;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -41,9 +42,43 @@ class ManageUsers extends Component
         $this->showForm = true;
     }
 
+    /**
+     * Résout un utilisateur en le bornant au magasin courant.
+     * Sans cela, l'identifiant venant du navigateur permettrait d'agir sur les
+     * comptes des autres magasins (et sur les super admins).
+     */
+    protected function resolveUser(int $userId): User
+    {
+        $storeId = StoreContext::id();
+
+        abort_if($storeId === null && ! optional(auth()->user())->is_super_admin, 403);
+
+        $user = User::query()
+            ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->findOrFail($userId);
+
+        abort_if($user->is_super_admin && ! optional(auth()->user())->is_super_admin, 403);
+
+        return $user;
+    }
+
+    /**
+     * Seul un admin de magasin ou un super admin peut créer ou promouvoir un admin.
+     */
+    protected function guardRole(string $role): void
+    {
+        if ($role !== 'admin') {
+            return;
+        }
+
+        $actor = auth()->user();
+
+        abort_unless($actor->is_super_admin || $actor->hasRole('admin'), 403);
+    }
+
     public function openEdit(int $userId): void
     {
-        $user = User::findOrFail($userId);
+        $user = $this->resolveUser($userId);
         $this->editingUserId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
@@ -81,12 +116,16 @@ class ManageUsers extends Component
             $data['password'] = Hash::make($this->password);
         }
 
+        $this->guardRole($this->role);
+
         if ($this->editingUserId) {
-            $user = User::findOrFail($this->editingUserId);
+            $user = $this->resolveUser((int) $this->editingUserId);
             $old = $user->getAttributes();
             $user->update($data);
             AuditLogger::log('team.updated', $user, $old, $user->getChanges());
         } else {
+            abort_if(StoreContext::id() === null, 422, 'Sélectionnez un magasin avant de créer un utilisateur.');
+
             $subscription = \App\Services\SubscriptionService::store(\App\Services\StoreContext::id());
             if (! $subscription->canCreateUser()) {
                 session()->flash('error', $subscription->limitMessage('user'));
@@ -108,14 +147,20 @@ class ManageUsers extends Component
 
     public function toggleActive(int $userId): void
     {
-        $user = User::findOrFail($userId);
+        $user = $this->resolveUser($userId);
+
+        if ($user->id === auth()->id()) {
+            session()->flash('error', 'Vous ne pouvez pas désactiver votre propre compte.');
+
+            return;
+        }
         $user->update(['is_active' => ! $user->is_active]);
         AuditLogger::log('team.active_toggled', $user);
     }
 
     public function deleteUser(int $userId): void
     {
-        $user = User::findOrFail($userId);
+        $user = $this->resolveUser($userId);
 
         if ($user->id === auth()->id()) {
             session()->flash('error', 'Vous ne pouvez pas supprimer votre propre compte.');
@@ -132,10 +177,11 @@ class ManageUsers extends Component
     {
         $users = User::query()
             ->when(\App\Services\StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
-            ->when($this->search, fn ($q) => $q
-                ->where('name', 'like', '%'.$this->search.'%')
-                ->orWhere('email', 'like', '%'.$this->search.'%')
-                ->orWhere('phone', 'like', '%'.$this->search.'%'))
+            ->when($this->search, fn ($q) => $q->where(function ($q) {
+                $q->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('email', 'like', '%'.$this->search.'%')
+                    ->orWhere('phone', 'like', '%'.$this->search.'%');
+            }))
             ->with('roles')
             ->latest()
             ->paginate(10);

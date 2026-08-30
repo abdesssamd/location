@@ -15,6 +15,8 @@ class CustomerShow extends Component
 
     public function mount(Customer $customer): void
     {
+        $this->authorize('view', $customer);
+
         $this->customer = $customer->load('rentals');
     }
 

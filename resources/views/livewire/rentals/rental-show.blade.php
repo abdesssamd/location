@@ -12,11 +12,13 @@
                     <a href="{{ route('contracts.pack-return.show', $rental) }}" class="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"><flux:icon.document-text variant="mini" /> Fiche retour pack</a>
                     <a href="{{ route('contracts.pack-return.pdf', $rental) }}" class="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"><flux:icon.arrow-down-tray variant="mini" /> PDF retour pack</a>
                 @endif
-                @if ($rental->status === 'reserved')
+                @if ($rental->status === 'reserved' && auth()->user()->can('rentals.checkout'))
                     <button wire:click="checkout" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"><flux:icon.play variant="mini" /> Démarrer la location</button>
+                @endif
+                @if ($rental->status === 'reserved' && auth()->user()->can('reservations.cancel'))
                     <button wire:click="cancel" wire:confirm="Annuler cette réservation ?" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50"><flux:icon.x-mark variant="mini" /> Annuler</button>
                 @endif
-                @if (in_array($rental->status, ['reserved', 'active']))
+                @if (in_array($rental->status, ['reserved', 'active']) && auth()->user()->can('rentals.return'))
                     <button wire:click="complete" wire:confirm="Confirmer le retour et terminer la location ?" class="inline-flex items-center gap-2 rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><flux:icon.arrow-down-tray variant="mini" /> Retour / Terminer</button>
                 @endif
                 @if (in_array($rental->status, ['reserved', 'active']) && auth()->user()->can('rentals.create'))
@@ -183,15 +185,19 @@
             </div>
 
             @php
-                $returnPhotos = $rental->items->pluck('return_image_paths')->filter()->flatten()->filter()->values();
+                $returnPhotos = $rental->items
+                    ->flatMap(fn ($item) => collect($item->return_image_paths ?? [])
+                        ->keys()
+                        ->map(fn ($i) => route('files.return', ['item' => $item->id, 'index' => $i])))
+                    ->values();
             @endphp
             @if ($returnPhotos->isNotEmpty())
                 <div class="card card-pad">
                     <h2 class="text-sm font-semibold text-zinc-900">Photos du retour</h2>
                     <div class="mt-3 flex flex-wrap gap-3">
-                        @foreach ($returnPhotos as $path)
-                            <a href="{{ asset('storage/'.$path) }}" target="_blank" rel="noopener">
-                                <img src="{{ asset('storage/'.$path) }}" class="h-24 w-24 rounded-lg border border-zinc-200 object-cover" alt="Retour" />
+                        @foreach ($returnPhotos as $photoUrl)
+                            <a href="{{ $photoUrl }}" target="_blank" rel="noopener">
+                                <img src="{{ $photoUrl }}" class="h-24 w-24 rounded-lg border border-zinc-200 object-cover" alt="Retour" />
                             </a>
                         @endforeach
                     </div>

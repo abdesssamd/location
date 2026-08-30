@@ -155,6 +155,11 @@ it('regenere le token et invalide l ancien', function () {
 
     expect($new->token)->not->toBe($oldToken);
     expect($new->token)->toStartWith('STR-');
+    // Seule l'empreinte est conservée : la valeur complète n'existe qu'en mémoire.
+    expect($new->plainText)->toStartWith('STR-');
+    expect($new->token)->not->toBe($new->plainText);
+    expect(StoreToken::where('token_hash', StoreToken::hashFor($new->plainText))->exists())->toBeTrue();
+    expect(StoreToken::where('token', $new->plainText)->exists())->toBeFalse();
     expect(StoreToken::where('store_id', $this->store->id)->where('status', 'active')->count())->toBe(1);
     expect(StoreToken::where('store_id', $this->store->id)->where('token', $oldToken)->where('status', 'revoked')->exists())->toBeTrue();
     expect($this->store->refresh()->token)->toBe($new->token);

@@ -27,6 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\CheckSubscription::class,
         ]);
+
+        // Le contexte tenant doit être posé AVANT SubstituteBindings : sinon le
+        // model binding résout les modèles sans le scope magasin (fuite inter-magasins).
+        $middleware->api(prepend: [
+            \App\Http\Middleware\ApiTokenAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -258,6 +258,13 @@
         </flux:header>
 
         <flux:main class="animate-fade-in">
+            @if (session('new_token'))
+                <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <p class="text-sm font-medium text-emerald-800">Votre token de magasin — copiez-le maintenant, il ne sera plus affiché :</p>
+                    <p class="mt-1 break-all font-mono text-sm text-emerald-900">{{ session('new_token') }}</p>
+                </div>
+            @endif
+
             {{ $slot }}
         </flux:main>
 

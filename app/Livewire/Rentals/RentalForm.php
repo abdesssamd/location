@@ -14,6 +14,7 @@ use App\Services\AvailabilityService;
 use App\Services\PackService;
 use App\Services\ReferenceGenerator;
 use App\Services\StoreContext;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -302,6 +303,31 @@ class RentalForm extends Component
      */
     protected function createRental(array $rows, int $subtotal, int $packSavings, int $total): void
     {
+        $created = DB::transaction(function () use ($rows, $subtotal, $packSavings, $total) {
+            // Verrou + revalidation dans la transaction : deux employés qui réservent
+            // le dernier article au même instant ne peuvent plus passer tous les deux.
+            $this->lockProducts($rows);
+
+            if (! $this->validateRowsAvailability($rows, null)) {
+                return null;
+            }
+
+            return $this->persistNewRental($rows, $subtotal, $packSavings, $total);
+        });
+
+        if (! $created) {
+            return;
+        }
+
+        session()->flash('status', 'Réservation '.$created->reference.' créée.');
+        $this->redirect(route('rentals.show', $created), navigate: true);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    protected function persistNewRental(array $rows, int $subtotal, int $packSavings, int $total): Rental
+    {
         $rental = Rental::create([
             'store_id' => Customer::find($this->customer_id)?->store_id ?? StoreContext::id(),
             'customer_id' => $this->customer_id,
@@ -322,8 +348,21 @@ class RentalForm extends Component
         $this->storeItemsAndStock($rental, $rows, 'out', 'Réservation');
         AuditLogger::created($rental, 'rental.created');
 
-        session()->flash('status', 'Réservation '.$rental->reference.' créée.');
-        $this->redirect(route('rentals.show', $rental), navigate: true);
+        return $rental;
+    }
+
+    /**
+     * Verrouille les articles concernés le temps de la transaction.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     */
+    protected function lockProducts(array $rows): void
+    {
+        $ids = collect($rows)->pluck('product_id')->filter()->unique()->values()->all();
+
+        if ($ids) {
+            Product::whereIn('id', $ids)->lockForUpdate()->get();
+        }
     }
 
     /**
@@ -339,42 +378,42 @@ class RentalForm extends Component
             return;
         }
 
-        $oldItems = $rental->items()->get();
-        $rental->items()->delete();
+        DB::transaction(function () use ($rental, $rows, $subtotal, $packSavings, $total) {
+            $this->lockProducts($rows);
 
-        // Restaurer le stock des anciens articles avant de ré-appliquer le nouveau
-        foreach ($oldItems as $old) {
-            $product = Product::find((int) $old->product_id);
-            if ($product) {
-                $product->increment('quantity', $old->quantity);
+            $oldItems = $rental->items()->get();
+            $rental->items()->delete();
+
+            // Journal seulement : products.quantity représente le parc total détenu,
+            // la disponibilité par dates est calculée par AvailabilityService.
+            foreach ($oldItems as $previous) {
+                StockMovement::create([
+                    'store_id' => $rental->store_id ?? StoreContext::id(),
+                    'product_id' => (int) $previous->product_id,
+                    'user_id' => auth()->id(),
+                    'type' => 'in',
+                    'quantity' => $previous->quantity,
+                    'reason' => 'Annulation édition '.$rental->reference,
+                    'date' => now(),
+                ]);
             }
 
-            StockMovement::create([
-                'store_id' => $rental->store_id ?? StoreContext::id(),
-                'product_id' => (int) $old->product_id,
-                'user_id' => auth()->id(),
-                'type' => 'in',
-                'quantity' => $old->quantity,
-                'reason' => 'Annulation édition '.$rental->reference,
-                'date' => now(),
+            $old = $rental->getAttributes();
+            $rental->update([
+                'customer_id' => $this->customer_id,
+                'start_date' => $this->start_date,
+                'end_date' => $this->end_date,
+                'subtotal' => $subtotal,
+                'discount' => (int) $this->discount,
+                'pack_savings' => $packSavings,
+                'caution' => (int) $this->caution,
+                'total' => $total,
+                'notes' => $this->notes ?: null,
             ]);
-        }
 
-        $old = $rental->getAttributes();
-        $rental->update([
-            'customer_id' => $this->customer_id,
-            'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
-            'subtotal' => $subtotal,
-            'discount' => (int) $this->discount,
-            'pack_savings' => $packSavings,
-            'caution' => (int) $this->caution,
-            'total' => $total,
-            'notes' => $this->notes ?: null,
-        ]);
-
-        $this->storeItemsAndStock($rental, $rows, 'out', 'Édition réservation');
-        AuditLogger::updated($rental, $old, 'rental.updated');
+            $this->storeItemsAndStock($rental, $rows, 'out', 'Édition réservation');
+            AuditLogger::updated($rental, $old, 'rental.updated');
+        });
 
         session()->flash('status', 'Réservation mise à jour.');
         $this->redirect(route('rentals.show', $rental), navigate: true);
@@ -403,11 +442,8 @@ class RentalForm extends Component
             ]);
 
             if ($movementType === 'out') {
-                $product = Product::find((int) $item['product_id']);
-                if ($product) {
-                    $product->decrement('quantity', $qty);
-                }
-
+                // Pas de décrément de products.quantity : la quantité est le parc total,
+                // les engagements sur la période sont déduits par AvailabilityService.
                 StockMovement::create([
                     'store_id' => $rental->store_id ?? StoreContext::id(),
                     'product_id' => (int) $item['product_id'],

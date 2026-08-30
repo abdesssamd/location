@@ -8,6 +8,14 @@ Route::middleware('guest')->group(function () {
     Volt::route('login', 'auth.login')
         ->name('login');
 
+    // Inscription publique d'un magasin (page d'accueil).
+    Route::get('inscription', [\App\Http\Controllers\Auth\StoreRegistrationController::class, 'create'])
+        ->name('store.register');
+
+    Route::post('inscription', [\App\Http\Controllers\Auth\StoreRegistrationController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('store.register.store');
+
     Volt::route('forgot-password', 'auth.forgot-password')
         ->name('password.request');
 

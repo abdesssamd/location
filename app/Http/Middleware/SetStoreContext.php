@@ -48,7 +48,15 @@ class SetStoreContext
     protected function resolveSubdomain(Request $request): ?string
     {
         // Désactivé tant qu'aucun domaine de base n'est configuré (ex: local)
-        $baseDomain = strtolower((string) config('app.domain'));
+        $baseDomain = strtolower(trim((string) config('app.domain')));
+
+        // APP_DOMAIN est souvent renseigné comme une URL complète : on normalise
+        // plutôt que de désactiver silencieusement la résolution par sous-domaine.
+        if ($baseDomain !== '') {
+            $baseDomain = (string) (parse_url($baseDomain, PHP_URL_HOST) ?? $baseDomain);
+            $baseDomain = trim(preg_replace('#^.*://#', '', $baseDomain), '/');
+            $baseDomain = explode(':', $baseDomain)[0];
+        }
 
         if ($baseDomain === '') {
             return null;

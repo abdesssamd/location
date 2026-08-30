@@ -27,7 +27,7 @@ it('affiche la liste des locations', function () {
         ->assertOk();
 });
 
-it('cree une reservation et deduit le stock', function () {
+it('cree une reservation et engage la disponibilite', function () {
     Livewire::actingAs($this->user)
         ->test(\App\Livewire\Rentals\RentalForm::class)
         ->set('customer_id', $this->customer->id)
@@ -41,14 +41,15 @@ it('cree une reservation et deduit le stock', function () {
     expect($rental->subtotal)->toBe(6000);
     expect($rental->total)->toBe(6000);
     expect($rental->reference)->toStartWith('LOC-');
-    expect($this->product->refresh()->quantity)->toBe(3);
+    // Le parc reste inchangé : c'est la disponibilité sur la période qui est engagée.
+    expect($this->product->refresh()->quantity)->toBe(5);
+    expect($this->product->freeBetween(now()->addDay()->toDateString(), now()->addDays(3)->toDateString()))->toBe(3);
     expect(\App\Models\StockMovement::where('product_id', $this->product->id)->where('type', 'out')->exists())->toBeTrue();
 });
 
 it('demarre puis termine une location en restituant le stock', function () {
     $rental = Rental::create(['store_id' => $this->store->id, 'customer_id' => $this->customer->id, 'user_id' => $this->user->id, 'reference' => 'LOC-2026-0001', 'start_date' => now(), 'end_date' => now()->addDays(2), 'status' => 'reserved', 'subtotal' => 3000, 'total' => 3000]);
     \App\Models\RentalItem::create(['store_id' => $this->store->id, 'rental_id' => $rental->id, 'product_id' => $this->product->id, 'quantity' => 1, 'unit_price' => 3000, 'line_total' => 3000]);
-    $this->product->decrement('quantity', 1);
 
     Livewire::actingAs($this->user)
         ->test(\App\Livewire\Rentals\RentalShow::class, ['rental' => $rental])
@@ -68,7 +69,6 @@ it('demarre puis termine une location en restituant le stock', function () {
 it('annule une reservation et restitue le stock', function () {
     $rental = Rental::create(['store_id' => $this->store->id, 'customer_id' => $this->customer->id, 'user_id' => $this->user->id, 'reference' => 'LOC-2026-0002', 'start_date' => now(), 'end_date' => now()->addDays(2), 'status' => 'reserved', 'subtotal' => 3000, 'total' => 3000]);
     \App\Models\RentalItem::create(['store_id' => $this->store->id, 'rental_id' => $rental->id, 'product_id' => $this->product->id, 'quantity' => 1, 'unit_price' => 3000, 'line_total' => 3000]);
-    $this->product->decrement('quantity', 1);
 
     Livewire::actingAs($this->user)
         ->test(\App\Livewire\Rentals\RentalShow::class, ['rental' => $rental])

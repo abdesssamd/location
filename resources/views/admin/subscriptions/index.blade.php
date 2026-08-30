@@ -46,7 +46,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             @if ($payment->proof_path)
-                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->proof_path) }}" target="_blank" class="rounded-xl border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50">Preuve</a>
+                                <a href="{{ route('files.subscription-proof', $payment) }}" target="_blank" class="rounded-xl border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50">Preuve</a>
                             @endif
                             <form method="POST" action="{{ route('admin.subscriptions.approve', $payment) }}">
                                 @csrf

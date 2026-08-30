@@ -381,13 +381,10 @@ class SubscriptionService
                 ->where('status', StoreToken::STATUS_ACTIVE)
                 ->update(['status' => StoreToken::STATUS_REVOKED, 'revoked_at' => now()]);
 
-            $token = StoreToken::create([
-                'store_id' => $store->id,
-                'token' => ReferenceGenerator::storeToken(),
-                'status' => StoreToken::STATUS_ACTIVE,
-                'created_by' => $userId,
-            ]);
+            $token = StoreToken::issue($store->id, $userId);
 
+            // La fiche magasin n'affiche que l'aperçu masqué ; la valeur complète
+            // n'est montrée qu'une fois, à la génération.
             $store->update(['token' => $token->token]);
 
             return $token;

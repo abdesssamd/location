@@ -43,13 +43,13 @@ class StoreController extends Controller
             'admin_password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $data['token'] = ReferenceGenerator::storeToken();
+        $data['token'] = '';
         $data['status'] = 'active';
 
         $store = Store::create($data);
 
         // Token initial + abonnement d'essai 14 jours
-        \App\Services\SubscriptionService::generateToken($store, auth()->id());
+        $initialToken = \App\Services\SubscriptionService::generateToken($store, auth()->id());
         $trialPlan = \App\Models\Plan::where('is_active', true)->orderBy('sort_order')->first();
         if ($trialPlan) {
             \App\Services\SubscriptionService::createSubscription($store, $trialPlan, \App\Models\Subscription::STATUS_TRIAL, 14, auth()->id());
@@ -78,7 +78,8 @@ class StoreController extends Controller
 
         return redirect()
             ->route('admin.stores.show', $store)
-            ->with('status', 'Magasin créé avec succès. Un email a été envoyé à l\'administrateur.');
+            ->with('status', 'Magasin créé avec succès. Un email a été envoyé à l\'administrateur.')
+            ->with('new_token', $initialToken->plainText);
     }
 
     public function show(Store $store): View
@@ -118,6 +119,23 @@ class StoreController extends Controller
         return redirect()
             ->route('admin.stores.show', $store)
             ->with('status', 'Magasin mis à jour.');
+    }
+
+    /**
+     * Valide une demande d'inscription : le magasin devient actif et
+     * sa période de démonstration démarre.
+     */
+    public function approve(Store $store): RedirectResponse
+    {
+        abort_unless($store->status === 'pending', 422, 'Ce magasin n\'est pas en attente de validation.');
+
+        $token = \App\Services\StoreRegistrar::activate($store, auth()->id());
+
+        AuditLogger::log('store.approved', $store, null, ['status' => 'active'], null);
+
+        return back()
+            ->with('status', 'Magasin activé. Période de démonstration de '.\App\Models\PlatformSetting::trialDays().' jours démarrée.')
+            ->with('new_token', $token->plainText);
     }
 
     public function toggleStatus(Store $store): RedirectResponse

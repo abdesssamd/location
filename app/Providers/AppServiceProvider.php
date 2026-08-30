@@ -39,6 +39,18 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        // En production : liens absolus en HTTPS (contrats, e-mails, QR codes) et
+        // alerte si le mode debug a été laissé actif (fuite de trace et de secrets).
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+
+            if (config('app.debug')) {
+                \Illuminate\Support\Facades\Log::warning(
+                    'APP_DEBUG est actif en production : les traces exposent les variables d\'environnement.'
+                );
+            }
+        }
+
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Customer::class, CustomerPolicy::class);
         Gate::policy(Rental::class, RentalPolicy::class);

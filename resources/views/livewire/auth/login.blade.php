@@ -123,4 +123,11 @@ new #[Layout('components.layouts.auth')] class extends Component {
             <flux:button variant="primary" type="submit" class="w-full">{{ __('Se connecter') }}</flux:button>
         </div>
     </form>
+
+    @if (\App\Models\PlatformSetting::signupEnabled())
+        <p class="text-center text-sm text-zinc-600">
+            {{ __('Pas encore de magasin ?') }}
+            <a href="{{ route('store.register') }}" class="font-medium text-brand-800 hover:underline">{{ __('Créer mon magasin') }}</a>
+        </p>
+    @endif
 </div>

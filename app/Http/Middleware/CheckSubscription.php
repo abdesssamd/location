@@ -16,7 +16,12 @@ class CheckSubscription
     protected array $except = [
         'subscription.*',
         'plans',
-        'settings.*',
+        // Uniquement les pages de compte : 'settings.*' laisserait aussi passer
+        // settings.index, la configuration complète du magasin.
+        'settings',
+        'settings.profile',
+        'settings.password',
+        'settings.appearance',
         'profile.*',
         'password.*',
         'logout',

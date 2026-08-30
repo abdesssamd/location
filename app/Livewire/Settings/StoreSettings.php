@@ -38,16 +38,20 @@ class StoreSettings extends Component
 
     public function mount(): void
     {
-        $this->needsStore = StoreContext::id() === null;
+        $this->needsStore = StoreContext::id() === null && $this->isSuperAdmin();
 
         $storeId = StoreContext::id();
 
-        if (! $storeId) {
+        // Seul le super admin peut travailler hors contexte : un utilisateur de magasin
+        // sans store_id ne doit jamais « hériter » du premier magasin de la base.
+        if (! $storeId && $this->isSuperAdmin()) {
             $storeId = (int) (session('admin_store_id', Store::query()->oldest()->value('id') ?? 0));
             if ($storeId) {
                 StoreContext::set($storeId);
             }
         }
+
+        abort_if(! $storeId && ! $this->isSuperAdmin(), 403, 'Aucun magasin associé à votre compte.');
 
         if ($storeId) {
             $this->store = Store::findOrFail($storeId);
@@ -57,8 +61,17 @@ class StoreSettings extends Component
         $this->selectedStoreId = $storeId ?: null;
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return (bool) optional(auth()->user())->is_super_admin;
+    }
+
     public function selectStore(): void
     {
+        // selectedStoreId vient du navigateur : sans cette garde, n'importe quel
+        // utilisateur ayant settings.manage pourrait éditer un autre magasin.
+        abort_unless($this->isSuperAdmin(), 403);
+
         session(['admin_store_id' => (int) $this->selectedStoreId]);
         StoreContext::set((int) $this->selectedStoreId);
 
@@ -86,8 +99,22 @@ class StoreSettings extends Component
         $this->rental_conditions = implode("\n", $this->store->rental_conditions ?? []);
     }
 
+    /**
+     * Le magasin en cours d'édition doit toujours être celui du contexte tenant.
+     */
+    protected function guardStore(): void
+    {
+        abort_if($this->store === null, 404);
+
+        if (! $this->isSuperAdmin()) {
+            abort_unless((int) $this->store->id === (int) StoreContext::id(), 403);
+        }
+    }
+
     public function saveGeneral(): void
     {
+        $this->guardStore();
+
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -115,6 +142,8 @@ class StoreSettings extends Component
 
     public function saveFinancial(): void
     {
+        $this->guardStore();
+
         $this->validate([
             'currency' => ['required', 'string', 'in:DA,EUR,USD,GBP,TND,MAD,CAD,AED,XOF'],
             'tax_rate' => ['numeric', 'min:0', 'max:100'],
@@ -138,6 +167,8 @@ class StoreSettings extends Component
 
     public function saveLogo(): void
     {
+        $this->guardStore();
+
         $this->validate([
             'logo' => ['required', 'image', 'max:2048'],
         ]);

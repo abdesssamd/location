@@ -17,10 +17,8 @@ class ApiTokenAuth
             abort(401, 'Token du magasin requis.');
         }
 
-        $storeToken = StoreToken::where('token', $token)
-            ->where('status', StoreToken::STATUS_ACTIVE)
-            ->with('store')
-            ->first();
+        // Comparaison sur l'empreinte : la base ne contient pas le token en clair.
+        $storeToken = StoreToken::findActiveByPlainText($token);
 
         if (! $storeToken || ! $storeToken->store) {
             abort(401, 'Token invalide ou révoqué.');
@@ -29,6 +27,12 @@ class ApiTokenAuth
         if ($storeToken->store->status !== 'active') {
             abort(403, 'Magasin suspendu.');
         }
+
+        // Traçabilité : une fuite de token devient détectable (dernière IP, dernier usage).
+        $storeToken->forceFill([
+            'last_used_at' => now(),
+            'last_ip' => $request->ip(),
+        ])->saveQuietly();
 
         StoreContext::set($storeToken->store_id);
 

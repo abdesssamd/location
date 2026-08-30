@@ -127,9 +127,10 @@
                             <td class="px-4 py-2.5">
                                 @if (!empty($payment->proof_image_paths))
                                     <div class="flex flex-wrap gap-1">
-                                        @foreach ($payment->proof_image_paths as $path)
-                                            <a href="{{ asset('storage/'.$path) }}" target="_blank" class="block">
-                                                <img src="{{ asset('storage/'.$path) }}" class="size-10 rounded-lg border border-zinc-200 object-cover" alt="Preuve" />
+                                        @foreach ($payment->proof_image_paths as $i => $path)
+                                            @php($proofUrl = route('files.payment', ['payment' => $payment, 'index' => $i]))
+                                            <a href="{{ $proofUrl }}" target="_blank" class="block">
+                                                <img src="{{ $proofUrl }}" class="size-10 rounded-lg border border-zinc-200 object-cover" alt="Preuve" />
                                             </a>
                                         @endforeach
                                     </div>

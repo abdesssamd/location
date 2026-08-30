@@ -213,6 +213,8 @@ class ProductForm extends Component
 
     public function save(): void
     {
+        $this->authorize($this->productId ? 'update' : 'create', $this->product ?? \App\Models\Product::class);
+
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'reference' => ['required', 'string', 'max:255'],

@@ -9,9 +9,17 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
-    return auth()->check()
-        ? (auth()->user()->is_super_admin ? redirect()->route('admin.index') : redirect()->route('dashboard'))
-        : redirect()->route('login');
+    if (auth()->check()) {
+        return auth()->user()->is_super_admin
+            ? redirect()->route('admin.index')
+            : redirect()->route('dashboard');
+    }
+
+    return view('landing', [
+        'plans' => \App\Models\Plan::where('is_active', true)->orderBy('sort_order')->get(),
+        'trialDays' => \App\Models\PlatformSetting::trialDays(),
+        'signupEnabled' => \App\Models\PlatformSetting::signupEnabled(),
+    ]);
 })->name('home');
 
 Route::get('locale/{locale}', \App\Http\Controllers\LocaleController::class)
@@ -163,6 +171,21 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:contracts.pdf'])
         ->name('contracts.pack-return.pdf');
 
+    // --- Fichiers sensibles (jamais servis directement par /storage) ---
+    Route::get('files/payments/{payment}/{index}', [\App\Http\Controllers\SecureFileController::class, 'payment'])
+        ->middleware(['store.context', 'permission:payments.view'])
+        ->whereNumber('index')
+        ->name('files.payment');
+
+    Route::get('files/returns/{item}/{index}', [\App\Http\Controllers\SecureFileController::class, 'rentalReturn'])
+        ->middleware(['store.context', 'permission:rentals.view'])
+        ->whereNumber('index')
+        ->name('files.return');
+
+    Route::get('files/subscription-proofs/{payment}', [\App\Http\Controllers\SecureFileController::class, 'subscriptionProof'])
+        ->middleware('store.context')
+        ->name('files.subscription-proof');
+
     // --- Rapports ---
     Route::get('reports', \App\Livewire\Reports\Reports::class)
         ->middleware(['store.context', 'permission:reports.view'])
@@ -183,6 +206,10 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')
     Route::post('stores/{store}/admins', [StoreController::class, 'createAdmin'])->name('stores.admins.store');
     Route::post('stores/{store}/admins/{admin}/reset-password', [StoreController::class, 'resetAdminPassword'])->name('stores.admins.reset-password');
     Route::delete('stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
+
+    Route::post('stores/{store}/approve', [StoreController::class, 'approve'])->name('stores.approve');
+
+    Route::get('settings', \App\Livewire\Admin\PlatformSettingsManager::class)->name('settings');
 
     Route::get('audits', [AdminAuditController::class, 'index'])->name('audits.index');
     Route::get('stores/{store}/export', [AdminAuditController::class, 'exportStore'])->name('stores.export');

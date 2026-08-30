@@ -13,6 +13,8 @@ class PackShow extends Component
 
     public function mount(Pack $pack): void
     {
+        $this->authorize('view', $pack);
+
         $this->pack = $pack->load(['category', 'items.product', 'images']);
     }
 

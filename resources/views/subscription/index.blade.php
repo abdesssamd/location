@@ -78,8 +78,12 @@
             {{-- Token --}}
             <div class="card card-pad">
                 <h2 class="text-sm font-semibold text-zinc-900">Token du magasin</h2>
-                <p class="mt-1 text-xs text-zinc-500">Identifiant unique du magasin (ne le partagez pas).</p>
+                <p class="mt-1 text-xs text-zinc-500">Identifiant unique du magasin (ne le partagez pas). Seul un aperçu est conservé : la valeur complète n'est affichée qu'à la génération.</p>
                 <p class="mt-3 break-all rounded-xl bg-zinc-50 px-3 py-2 font-mono text-sm text-zinc-800">{{ $token?->token ?? '—' }}</p>
+                @if ($token?->last_used_at)
+                    <p class="mt-2 text-xs text-zinc-500">Dernier appel API : {{ $token->last_used_at->format('d/m/Y H:i') }}{{ $token->last_ip ? ' depuis '.$token->last_ip : '' }}</p>
+                @endif
+                <p class="mt-2 text-xs text-zinc-500">Token perdu ? Demandez une régénération à l'administrateur : l'ancien devient immédiatement invalide.</p>
                 @if ($token?->status !== 'active')
                     <p class="mt-2 text-xs font-medium text-rose-600">Token désactivé — contactez l'administrateur.</p>
                 @endif
