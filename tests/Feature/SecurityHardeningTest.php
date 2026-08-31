@@ -305,3 +305,44 @@ it('le contexte magasin est pose apres la session et avant le model binding', fu
     expect($session)->toBeLessThan($context);
     expect($context)->toBeLessThan($bindings);
 });
+
+it('enregistre un client avec telephone secondaire wilaya et commune', function () {
+    // Ces colonnes existent dans le modèle : sans la migration, l'insertion
+    // échouait en base avec « Unknown column 'phone_secondary' ».
+    $customer = \App\Models\Customer::create([
+        'store_id' => $this->storeA->id,
+        'first_name' => 'Abdessamad',
+        'last_name' => 'Kherbouche',
+        'phone' => '0555668877',
+        'phone_secondary' => '0777112233',
+        'email' => 'client@test.dz',
+        'wilaya' => 'Tlemcen',
+        'commune' => 'Mansourah',
+    ]);
+
+    expect($customer->refresh())
+        ->phone_secondary->toBe('0777112233')
+        ->wilaya->toBe('Tlemcen')
+        ->commune->toBe('Mansourah');
+});
+
+it('la reconciliation recredite le parc diminue par l ancien modele', function () {
+    StoreContext::set($this->storeA->id);
+
+    $product = Product::create(['store_id' => $this->storeA->id, 'name' => 'Costume R', 'reference' => 'A-REC', 'rental_price' => 1000, 'caution_price' => 0, 'quantity' => 0, 'status' => 'available']);
+    $customer = \App\Models\Customer::create(['store_id' => $this->storeA->id, 'first_name' => 'R', 'last_name' => 'C', 'phone' => '0551']);
+
+    $rental = Rental::create([
+        'store_id' => $this->storeA->id, 'customer_id' => $customer->id, 'user_id' => $this->adminA->id,
+        'reference' => 'LOC-REC', 'start_date' => now(), 'end_date' => now()->addDay(),
+        'status' => 'active', 'subtotal' => 1000, 'total' => 1000,
+    ]);
+    RentalItem::create(['store_id' => $this->storeA->id, 'rental_id' => $rental->id, 'product_id' => $product->id, 'quantity' => 2, 'unit_price' => 1000, 'line_total' => 2000]);
+
+    // Sans --apply : rapport seulement.
+    $this->artisan('stock:reconcile')->assertSuccessful();
+    expect($product->refresh()->quantity)->toBe(0);
+
+    $this->artisan('stock:reconcile --apply')->assertSuccessful();
+    expect($product->refresh()->quantity)->toBe(2);
+});

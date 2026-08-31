@@ -262,7 +262,11 @@
                                                         @if (($component['status'] ?? 'available') === 'available')
                                                             <span class="text-xs text-emerald-600">🟢 Disponible</span>
                                                         @else
-                                                            <span class="text-xs text-rose-600">🔴 Indisponible</span>
+                                                            {{-- Dire pourquoi : « indisponible » sans chiffre laisse l'utilisateur sans piste --}}
+                                                            <span class="text-xs text-rose-600">
+                                                                🔴 Indisponible
+                                                                <span class="text-zinc-500">({{ $component['available_qty'] ?? 0 }} libre(s) sur la période, {{ $component['required_qty'] ?? 1 }} requis)</span>
+                                                            </span>
                                                         @endif
                                                     </div>
                                                 </div>
