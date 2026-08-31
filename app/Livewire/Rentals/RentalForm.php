@@ -357,7 +357,7 @@ class RentalForm extends Component
             'notes' => $this->notes ?: null,
         ]);
 
-        $this->storeItemsAndStock($rental, $rows, 'out', 'Réservation');
+        $this->storeItems($rental, $rows);
         AuditLogger::created($rental, 'rental.created');
 
         return $rental;
@@ -393,21 +393,25 @@ class RentalForm extends Component
         DB::transaction(function () use ($rental, $rows, $subtotal, $packSavings, $total) {
             $this->lockProducts($rows);
 
-            $oldItems = $rental->items()->get();
+            $wasActive = $rental->status === 'active';
+            $oldItems = $wasActive ? $rental->items()->get() : null;
+
             $rental->items()->delete();
 
-            // Journal seulement : products.quantity représente le parc total détenu,
-            // la disponibilité par dates est calculée par AvailabilityService.
-            foreach ($oldItems as $previous) {
-                StockMovement::create([
-                    'store_id' => $rental->store_id ?? StoreContext::id(),
-                    'product_id' => (int) $previous->product_id,
-                    'user_id' => auth()->id(),
-                    'type' => 'in',
-                    'quantity' => $previous->quantity,
-                    'reason' => 'Annulation édition '.$rental->reference,
-                    'date' => now(),
-                ]);
+            if ($wasActive) {
+                // La location était déjà sortie : les anciens articles rentrent
+                // (journal seulement) avant que les nouveaux ne ressortent.
+                foreach ($oldItems as $previous) {
+                    StockMovement::create([
+                        'store_id' => $rental->store_id ?? StoreContext::id(),
+                        'product_id' => (int) $previous->product_id,
+                        'user_id' => auth()->id(),
+                        'type' => 'in',
+                        'quantity' => $previous->quantity,
+                        'reason' => 'Édition location '.$rental->reference,
+                        'date' => now(),
+                    ]);
+                }
             }
 
             $old = $rental->getAttributes();
@@ -423,7 +427,23 @@ class RentalForm extends Component
                 'notes' => $this->notes ?: null,
             ]);
 
-            $this->storeItemsAndStock($rental, $rows, 'out', 'Édition réservation');
+            $this->storeItems($rental, $rows);
+
+            if ($wasActive) {
+                // Toujours en cours après l'édition : les nouveaux articles sortent.
+                foreach ($rows as $item) {
+                    StockMovement::create([
+                        'store_id' => $rental->store_id ?? StoreContext::id(),
+                        'product_id' => (int) $item['product_id'],
+                        'user_id' => auth()->id(),
+                        'type' => 'out',
+                        'quantity' => -(int) $item['quantity'],
+                        'reason' => 'Édition location '.$rental->reference,
+                        'date' => now(),
+                    ]);
+                }
+            }
+
             AuditLogger::updated($rental, $old, 'rental.updated');
         });
 
@@ -432,9 +452,15 @@ class RentalForm extends Component
     }
 
     /**
+     * Crée les lignes de la réservation. Aucun mouvement de stock n'est écrit
+     * ici : une réservation n'engage que la disponibilité par dates
+     * (AvailabilityService), elle ne fait rien sortir du magasin. Le seul
+     * mouvement réel a lieu au checkout, quand les articles sortent
+     * physiquement (voir RentalShow::checkout()).
+     *
      * @param array<int, array<string, mixed>> $rows
      */
-    protected function storeItemsAndStock(Rental $rental, array $rows, string $movementType, string $reason): void
+    protected function storeItems(Rental $rental, array $rows): void
     {
         foreach ($rows as $item) {
             $qty = (int) $item['quantity'];
@@ -452,20 +478,6 @@ class RentalForm extends Component
                 'line_total' => $lineTotal,
                 'is_pack_component' => (bool) ($item['is_pack_component'] ?? false),
             ]);
-
-            if ($movementType === 'out') {
-                // Pas de décrément de products.quantity : la quantité est le parc total,
-                // les engagements sur la période sont déduits par AvailabilityService.
-                StockMovement::create([
-                    'store_id' => $rental->store_id ?? StoreContext::id(),
-                    'product_id' => (int) $item['product_id'],
-                    'user_id' => auth()->id(),
-                    'type' => 'out',
-                    'quantity' => -$qty,
-                    'reason' => $reason,
-                    'date' => now(),
-                ]);
-            }
         }
     }
 

@@ -44,7 +44,78 @@ it('cree une reservation et engage la disponibilite', function () {
     // Le parc reste inchangé : c'est la disponibilité sur la période qui est engagée.
     expect($this->product->refresh()->quantity)->toBe(5);
     expect($this->product->freeBetween(now()->addDay()->toDateString(), now()->addDays(3)->toDateString()))->toBe(3);
-    expect(\App\Models\StockMovement::where('product_id', $this->product->id)->where('type', 'out')->exists())->toBeTrue();
+    // Rien ne sort physiquement à la réservation : aucun mouvement de stock
+    // tant que checkout() n'a pas été appelé.
+    expect(\App\Models\StockMovement::where('product_id', $this->product->id)->exists())->toBeFalse();
+});
+
+it('n ecrit un mouvement de sortie qu au checkout, pas a la reservation', function () {
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', now()->addDay()->toDateString())
+        ->set('end_date', now()->addDays(3)->toDateString())
+        ->set('items', [['product_id' => $this->product->id, 'quantity' => 1, 'unit_price' => 3000]])
+        ->call('save');
+
+    $rental = Rental::where('customer_id', $this->customer->id)->firstOrFail();
+
+    expect(\App\Models\StockMovement::where('product_id', $this->product->id)->count())->toBe(0);
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalShow::class, ['rental' => $rental])
+        ->call('checkout');
+
+    $movements = \App\Models\StockMovement::where('product_id', $this->product->id)->get();
+    expect($movements)->toHaveCount(1);
+    expect($movements->first()->type)->toBe('out');
+    expect($movements->first()->quantity)->toBe(-1);
+});
+
+it('editer une reservation non sortie ne journalise aucun mouvement de stock', function () {
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', now()->addDay()->toDateString())
+        ->set('end_date', now()->addDays(3)->toDateString())
+        ->set('items', [['product_id' => $this->product->id, 'quantity' => 1, 'unit_price' => 3000]])
+        ->call('save');
+
+    $rental = Rental::where('customer_id', $this->customer->id)->firstOrFail();
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class, ['rental' => $rental])
+        ->set('items', [['product_id' => $this->product->id, 'quantity' => 2, 'unit_price' => 3000]])
+        ->call('save');
+
+    expect(\App\Models\StockMovement::where('product_id', $this->product->id)->count())->toBe(0);
+});
+
+it('editer une location deja sortie journalise le retour puis la nouvelle sortie', function () {
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', now()->addDay()->toDateString())
+        ->set('end_date', now()->addDays(3)->toDateString())
+        ->set('items', [['product_id' => $this->product->id, 'quantity' => 1, 'unit_price' => 3000]])
+        ->call('save');
+
+    $rental = Rental::where('customer_id', $this->customer->id)->firstOrFail();
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalShow::class, ['rental' => $rental])
+        ->call('checkout');
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class, ['rental' => $rental->fresh()])
+        ->set('items', [['product_id' => $this->product->id, 'quantity' => 2, 'unit_price' => 3000]])
+        ->call('save');
+
+    $movements = \App\Models\StockMovement::where('product_id', $this->product->id)->orderBy('id')->get();
+    expect($movements)->toHaveCount(3);
+    expect($movements[0]->type)->toBe('out')->and($movements[0]->quantity)->toBe(-1);
+    expect($movements[1]->type)->toBe('in')->and($movements[1]->quantity)->toBe(1);
+    expect($movements[2]->type)->toBe('out')->and($movements[2]->quantity)->toBe(-2);
 });
 
 it('demarre puis termine une location en restituant le stock', function () {
