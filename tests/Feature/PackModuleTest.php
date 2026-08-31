@@ -422,3 +422,56 @@ it('choisit une variante libre de la categorie si une autre est deja reservee su
     expect($rental->items()->count())->toBe(1);
     expect($rental->items()->first()->product_id)->toBe($free->id);
 });
+
+it('le super admin voit les categories du magasin cible du pack, pas de son contexte ambiant', function () {
+    // Reproduit le bug reel : le super admin a un autre magasin selectionne dans
+    // sa barre laterale (contexte ambiant) pendant qu'il compose un pack pour un
+    // magasin different via le selecteur "Magasin" du formulaire.
+    $superAdmin = User::where('is_super_admin', true)->firstOrFail();
+    $otherStore = Store::create(['name' => 'Autre Magasin', 'slug' => 'autre-pack-'.time(), 'token' => 'tok-'.time(), 'status' => 'active']);
+
+    $catOther = Category::create(['store_id' => $otherStore->id, 'name' => 'Costumes Autre']);
+    $catTarget = Category::create(['store_id' => $this->store->id, 'name' => 'Costumes Cible']);
+    Product::create(['store_id' => $this->store->id, 'name' => 'Costume Cible', 'reference' => 'C-CIBLE', 'category_id' => $catTarget->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 2, 'status' => 'available']);
+
+    // Contexte ambiant : l'autre magasin (celui choisi dans la barre laterale).
+    StoreContext::set($otherStore->id);
+
+    $component = Livewire::actingAs($superAdmin)
+        ->test(\App\Livewire\Packs\PackForm::class)
+        ->set('store_id', $this->store->id);
+
+    // Le selecteur de categories doit proposer celles du magasin CIBLE du pack,
+    // pas celles du contexte ambiant.
+    $categories = $component->viewData('categories');
+    expect($categories->pluck('id'))->toContain($catTarget->id);
+    expect($categories->pluck('id'))->not->toContain($catOther->id);
+
+    // Tenter d'enregistrer une ligne avec la categorie de l'AUTRE magasin doit
+    // etre rejete, meme si elle a fuite jusqu'au navigateur.
+    $component
+        ->set('name', 'Pack Cible')
+        ->set('reference', 'PACK-CIBLE')
+        ->set('pack_price', '2500')
+        ->set('caution', '1000')
+        ->set('items', [['product_id' => null, 'category_id' => $catOther->id, 'quantity' => 1, 'selection_mode' => 'auto']])
+        ->call('save')
+        ->assertHasErrors('items.0.category_id');
+
+    expect(Pack::where('reference', 'PACK-CIBLE')->exists())->toBeFalse();
+
+    // Avec la bonne categorie, l'enregistrement passe et reste resolvable.
+    $component
+        ->set('items', [['product_id' => null, 'category_id' => $catTarget->id, 'quantity' => 1, 'selection_mode' => 'auto']])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    // Le pack cree appartient au magasin cible, invisible depuis le contexte
+    // ambiant (autre magasin) toujours actif dans ce test : on le lit sans scope.
+    $pack = Pack::withoutGlobalScopes()->where('reference', 'PACK-CIBLE')->firstOrFail();
+    expect($pack->store_id)->toBe($this->store->id);
+
+    $item = $pack->items()->withoutGlobalScopes()->first();
+    expect($item->category_id)->toBe($catTarget->id);
+    expect($item->candidateProducts()->pluck('reference'))->toContain('C-CIBLE');
+});

@@ -146,7 +146,12 @@ class PackForm extends Component
      */
     public function addCategory(int $categoryId): void
     {
-        $category = Category::findOrFail($categoryId);
+        // La catégorie doit appartenir au magasin cible du pack, pas au contexte
+        // ambiant du super admin (qui peut pointer sur un autre magasin) : sinon
+        // la ligne « au choix » référence une catégorie vide pour ce magasin.
+        $category = Category::withoutGlobalScopes()
+            ->where('store_id', $this->resolveStoreId())
+            ->findOrFail($categoryId);
 
         foreach ($this->items as &$item) {
             if (! empty($item['category_id']) && (int) $item['category_id'] === $category->id && empty($item['product_id'])) {
@@ -256,15 +261,6 @@ class PackForm extends Component
             'photos.*' => ['image', 'max:10240'],
         ]);
 
-        // Chaque ligne doit viser un article OU une catégorie
-        foreach ($this->items as $idx => $item) {
-            if (empty($item['product_id']) && empty($item['category_id'])) {
-                $this->addError("items.{$idx}.product_id", 'Choisissez un article ou une catégorie.');
-
-                return;
-            }
-        }
-
         if ((bool) optional(auth()->user())->is_super_admin && $this->store_id) {
             $storeId = $this->store_id;
         } else {
@@ -275,6 +271,39 @@ class PackForm extends Component
             session()->flash('error', missing_store_message('créer un pack'));
 
             return;
+        }
+
+        // Chaque ligne doit viser un article OU une catégorie, et l'un comme
+        // l'autre doit appartenir au magasin cible du pack : sans ce contrôle,
+        // un super admin dont la barre latérale pointe sur un autre magasin
+        // pourrait enregistrer une catégorie ou un article étranger, rendant la
+        // ligne « au choix » invisible pour toujours dans ce magasin.
+        $productIds = collect($this->items)->pluck('product_id')->filter()->unique()->values();
+        $categoryIds = collect($this->items)->pluck('category_id')->filter()->unique()->values();
+
+        $validProductIds = $productIds->isEmpty() ? collect() : Product::withoutGlobalScopes()
+            ->where('store_id', $storeId)->whereIn('id', $productIds)->pluck('id');
+        $validCategoryIds = $categoryIds->isEmpty() ? collect() : Category::withoutGlobalScopes()
+            ->where('store_id', $storeId)->whereIn('id', $categoryIds)->pluck('id');
+
+        foreach ($this->items as $idx => $item) {
+            if (empty($item['product_id']) && empty($item['category_id'])) {
+                $this->addError("items.{$idx}.product_id", 'Choisissez un article ou une catégorie.');
+
+                return;
+            }
+
+            if (! empty($item['product_id']) && ! $validProductIds->contains((int) $item['product_id'])) {
+                $this->addError("items.{$idx}.product_id", "Cet article n'appartient pas au magasin sélectionné.");
+
+                return;
+            }
+
+            if (! empty($item['category_id']) && ! $validCategoryIds->contains((int) $item['category_id'])) {
+                $this->addError("items.{$idx}.category_id", "Cette catégorie n'appartient pas au magasin sélectionné.");
+
+                return;
+            }
         }
 
         $data = [
@@ -363,12 +392,14 @@ class PackForm extends Component
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $categoryIds = collect($this->items)->pluck('category_id')->filter()->unique()->all();
-        $categories = Category::whereIn('id', $categoryIds)->get()->keyBy('id');
+        $categories = Category::withoutGlobalScopes()->whereIn('id', $categoryIds)->get()->keyBy('id');
+        $targetStoreId = $this->resolveStoreId();
 
-        return (int) collect($this->items)->sum(function ($item) use ($products, $categories) {
+        return (int) collect($this->items)->sum(function ($item) use ($products, $categories, $targetStoreId) {
             $qty = (int) ($item['quantity'] ?? 0);
 
-            // Ligne par catégorie : prix du premier article de la catégorie
+            // Ligne par catégorie : prix du premier article de la catégorie, dans
+            // le magasin cible du pack (pas le contexte ambiant du super admin).
             if (! empty($item['category_id']) && empty($item['product_id'])) {
                 $category = $categories->get((int) $item['category_id']);
                 if (! $category) {
@@ -376,7 +407,7 @@ class PackForm extends Component
                 }
 
                 $price = Product::where('category_id', $category->id)
-                    ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+                    ->when($targetStoreId, fn ($q, $sid) => $q->where('store_id', $sid))
                     ->orderBy('rental_price', 'desc')
                     ->value('rental_price');
 
@@ -411,13 +442,23 @@ class PackForm extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        $categories = Category::with('children')->orderBy('name')->get();
+        // Toutes les données du formulaire sont scopées sur le magasin cible du
+        // pack (resolveStoreId), jamais sur le contexte ambiant du super admin :
+        // ce dernier peut travailler sur un autre magasin dans sa barre latérale
+        // pendant qu'il édite un pack destiné à un magasin différent.
+        $targetStoreId = $this->resolveStoreId();
+
+        $categories = Category::withoutGlobalScopes()
+            ->when($targetStoreId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->with('children')
+            ->orderBy('name')
+            ->get();
         $needsStore = (bool) optional(auth()->user())->is_super_admin;
         $stores = $needsStore ? \App\Models\Store::where('status', 'active')->orderBy('name')->get() : collect();
 
         $products = $this->product_search
             ? Product::query()
-                ->when(StoreContext::id(), fn ($q, $sid) => $q->where('store_id', $sid))
+                ->when($targetStoreId, fn ($q, $sid) => $q->where('store_id', $sid))
                 ->where(function ($q) {
                     $q->where('name', 'like', '%'.$this->product_search.'%')
                         ->orWhere('reference', 'like', '%'.$this->product_search.'%');
@@ -429,7 +470,7 @@ class PackForm extends Component
 
         $picked = Product::whereIn('id', collect($this->items)->pluck('product_id')->filter()->all())->get()->keyBy('id');
 
-        $categoryMap = Category::whereIn('id', collect($this->items)->pluck('category_id')->filter()->all())->get()->keyBy('id');
+        $categoryMap = Category::withoutGlobalScopes()->whereIn('id', collect($this->items)->pluck('category_id')->filter()->all())->get()->keyBy('id');
 
         return view('livewire.packs.pack-form', compact('categories', 'needsStore', 'stores', 'products', 'picked', 'categoryMap'));
     }

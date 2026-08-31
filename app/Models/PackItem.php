@@ -54,9 +54,20 @@ class PackItem extends Model
             return Product::whereRaw('1 = 0')->get();
         }
 
-        $storeId = $this->pack->store_id ?? \App\Services\StoreContext::id();
+        // La relation pack() porte elle aussi le scope tenant : sous un contexte
+        // ambiant différent du magasin de ce pack, $this->pack se résoudrait à
+        // null. On la charge donc sans scope plutôt que de retomber sur le
+        // contexte ambiant, qui est précisément ce qu'on veut ignorer ici.
+        $pack = $this->pack ?? \App\Models\Pack::withoutGlobalScopes()->find($this->pack_id);
+        $storeId = $pack->store_id ?? \App\Services\StoreContext::id();
 
-        return Product::where('category_id', $this->category_id)
+        // withoutGlobalScopes() : le magasin du pack est déjà imposé explicitement
+        // ci-dessous. Sans ce bypass, le scope tenant implicite de Product ajoute
+        // une seconde restriction sur le contexte AMBIANT (ex. le magasin choisi
+        // par un super admin dans sa barre latérale) — et les deux magasins
+        // n'étant presque jamais les mêmes, la requête ne renvoie jamais rien.
+        return Product::withoutGlobalScopes()
+            ->where('category_id', $this->category_id)
             ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
             ->whereNotIn('status', [Product::STATUS_OFFLINE, Product::STATUS_LOST])
             ->orderBy('name')

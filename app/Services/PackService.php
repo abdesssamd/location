@@ -135,8 +135,17 @@ class PackService
     protected function resolveProductForItem(PackItem $packItem, ?int $selectedProductId, ?string $startDate = null, ?string $endDate = null): ?Product
     {
         if ($selectedProductId) {
-            $candidate = Product::find($selectedProductId);
-            if ($candidate && $candidate->store_id === $packItem->pack->store_id) {
+            // withoutGlobalScopes() sur les deux lectures : le magasin est vérifié
+            // explicitement ci-dessous. Sans ce bypass, un contexte ambiant
+            // différent du magasin du pack (super admin sur un autre magasin)
+            // ferait échouer la résolution — ou résoudrait $packItem->pack à null,
+            // provoquant une erreur — même quand le produit sélectionné est
+            // parfaitement valide.
+            $candidate = Product::withoutGlobalScopes()->find($selectedProductId);
+            $packStoreId = $packItem->pack?->store_id
+                ?? \App\Models\Pack::withoutGlobalScopes()->whereKey($packItem->pack_id)->value('store_id');
+
+            if ($candidate && $candidate->store_id === $packStoreId) {
                 return $candidate;
             }
         }

@@ -14,7 +14,11 @@ class AvailabilityService
      */
     public function committedBetween(int $productId, string $start, string $end, ?int $ignoreRentalId = null): int
     {
-        return (int) RentalItem::query()
+        // withoutGlobalScopes() : le produit est déjà identifié par son id, qui
+        // fixe son magasin de façon univoque. Sans ce bypass, un contexte ambiant
+        // différent du magasin du produit masquerait ses réservations existantes
+        // et le déclarerait disponible à tort.
+        return (int) RentalItem::withoutGlobalScopes()
             ->where('product_id', $productId)
             ->whereHas('rental', function (Builder $q) use ($start, $end, $ignoreRentalId) {
                 $q->whereIn('status', ['reserved', 'active'])
@@ -51,7 +55,7 @@ class AvailabilityService
      */
     public function conflictsFor(Product $product, string $start, string $end, ?int $ignoreRentalId = null): array
     {
-        return RentalItem::query()
+        return RentalItem::withoutGlobalScopes()
             ->where('product_id', $product->id)
             ->whereHas('rental', function (Builder $q) use ($start, $end, $ignoreRentalId) {
                 $q->whereIn('status', ['reserved', 'active'])
