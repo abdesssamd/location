@@ -22,19 +22,29 @@ class PackItem extends Model
         'sort_order',
     ];
 
+    /**
+     * withoutGlobalScopes() sur ces trois relations : pack_id, product_id et
+     * category_id identifient déjà un enregistrement précis, dont le magasin
+     * est fixé par construction (ou vérifié explicitement à l'écriture, voir
+     * PackForm::save()). Le scope tenant y ajouterait une restriction sur le
+     * contexte AMBIANT — celui de l'utilisateur courant — qui n'a aucune
+     * raison de coïncider avec le magasin de cette ligne de pack, notamment
+     * pour un super admin ayant sélectionné un autre magasin dans sa barre
+     * latérale : la relation se résoudrait alors à null.
+     */
     public function pack(): BelongsTo
     {
-        return $this->belongsTo(Pack::class);
+        return $this->belongsTo(Pack::class)->withoutGlobalScopes();
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withoutGlobalScopes();
     }
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class)->withoutGlobalScopes();
     }
 
     public function isCategoryBased(): bool
@@ -84,7 +94,12 @@ class PackItem extends Model
     public function resolvedProduct(?string $startDate = null, ?string $endDate = null): ?Product
     {
         if ($this->product_id) {
-            return $this->product;
+            // La relation product() porte le scope tenant : sous un contexte
+            // ambiant différent du magasin de cet article (ex. super admin sur un
+            // autre magasin dans sa barre latérale), $this->product se résoudrait
+            // à null et la ligne serait déclarée indisponible à tort, alors que
+            // l'article est parfaitement valide et disponible dans son magasin.
+            return $this->product ?? Product::withoutGlobalScopes()->find($this->product_id);
         }
 
         $candidates = $this->candidateProducts();

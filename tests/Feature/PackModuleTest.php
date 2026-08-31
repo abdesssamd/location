@@ -475,3 +475,35 @@ it('le super admin voit les categories du magasin cible du pack, pas de son cont
     expect($item->category_id)->toBe($catTarget->id);
     expect($item->candidateProducts()->pluck('reference'))->toContain('C-CIBLE');
 });
+
+it('un pack avec un article fixe reste disponible meme si le contexte ambiant pointe sur un autre magasin', function () {
+    // Reproduit le bug rapporte : "en mode Article le costume est disponible,
+    // en mode Pack (meme article, en ligne fixe non 'au choix') il est indisponible".
+    // La relation PackItem::product() porte le scope tenant : sous un contexte
+    // ambiant different (autre magasin choisi par le super admin), elle se
+    // resolvait a null et la ligne passait a tort en indisponible.
+    $superAdmin = User::where('is_super_admin', true)->firstOrFail();
+    $otherStore = Store::create(['name' => 'Autre Magasin Fix', 'slug' => 'autre-fix-'.time(), 'token' => 'tok-fix-'.time(), 'status' => 'active']);
+
+    $pack = createPack($this->store->id, 'Pack Fixe', 'PACK-FIX', [
+        ['id' => $this->costume->id],
+    ], ['pack_price' => 2000]);
+
+    // Contexte ambiant sur un AUTRE magasin pendant que la reservation se fait
+    // pour $this->store (comportement typique du super admin avec le selecteur
+    // de magasin dans la barre laterale).
+    StoreContext::set($otherStore->id);
+
+    $service = app(\App\Services\PackService::class);
+    $check = $service->availability(
+        $pack,
+        [],
+        1,
+        now()->addDay()->toDateString(),
+        now()->addDays(3)->toDateString()
+    );
+
+    expect($check['is_available'])->toBeTrue();
+    expect($check['components'][0]['product_id'])->toBe($this->costume->id);
+    expect($check['components'][0]['status'])->toBe('available');
+});

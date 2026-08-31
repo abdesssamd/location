@@ -51,14 +51,21 @@ class Pack extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /**
+     * withoutGlobalScopes() : une ligne de pack appartient au magasin de son
+     * pack par construction — le scope tenant de PackItem est donc redondant
+     * ici, et nuisible sous un contexte ambiant différent (super admin ayant
+     * sélectionné un autre magasin) : il masquerait alors toutes les lignes
+     * du pack, qu'elles soient valides ou non.
+     */
     public function items(): HasMany
     {
-        return $this->hasMany(PackItem::class)->orderBy('sort_order');
+        return $this->hasMany(PackItem::class)->withoutGlobalScopes()->orderBy('sort_order');
     }
 
     public function images(): HasMany
     {
-        return $this->hasMany(PackImage::class)->orderBy('sort_order');
+        return $this->hasMany(PackImage::class)->withoutGlobalScopes()->orderBy('sort_order');
     }
 
     public function duplicatedFrom(): BelongsTo
