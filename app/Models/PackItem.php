@@ -43,31 +43,64 @@ class PackItem extends Model
     }
 
     /**
-     * Article effectivement utilisé pour cette ligne de pack.
-     * Produit explicite, sinon premier article disponible de la catégorie.
+     * Articles candidats d'une ligne « au choix » : tous les articles de la
+     * catégorie appartenant au magasin du pack.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Product>
      */
-    public function resolvedProduct(): ?Product
+    public function candidateProducts(): \Illuminate\Database\Eloquent\Collection
+    {
+        if (! $this->category_id) {
+            return Product::whereRaw('1 = 0')->get();
+        }
+
+        $storeId = $this->pack->store_id ?? \App\Services\StoreContext::id();
+
+        return Product::where('category_id', $this->category_id)
+            ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->whereNotIn('status', [Product::STATUS_OFFLINE, Product::STATUS_LOST])
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Article effectivement utilisé pour cette ligne de pack.
+     *
+     * Produit explicite, sinon le meilleur candidat de la catégorie : celui qui
+     * est réellement libre sur la période demandée. Sans les dates, on retombe
+     * sur celui qui a le plus grand parc.
+     */
+    public function resolvedProduct(?string $startDate = null, ?string $endDate = null): ?Product
     {
         if ($this->product_id) {
             return $this->product;
         }
 
-        if ($this->category_id) {
-            $storeId = $this->pack->store_id ?? \App\Services\StoreContext::id();
+        $candidates = $this->candidateProducts();
 
-            return Product::where('category_id', $this->category_id)
-                ->where('store_id', $storeId)
-                ->where('status', '!=', Product::STATUS_OFFLINE)
-                ->where('quantity', '>', 0)
-                ->orderByDesc('quantity')
-                ->first()
-                ?? Product::where('category_id', $this->category_id)
-                    ->where('store_id', $storeId)
-                    ->orderBy('name')
-                    ->first();
+        if ($candidates->isEmpty()) {
+            return null;
         }
 
-        return null;
+        $required = max(1, (int) $this->quantity);
+
+        // Une ligne « au choix » ne doit pas être déclarée indisponible parce que
+        // la variante tirée au sort est réservée : on prend celle qui est libre.
+        if ($startDate && $endDate) {
+            $availability = app(\App\Services\AvailabilityService::class);
+
+            $free = $candidates
+                ->map(fn (Product $p) => [$p, $availability->freeBetween($p, $startDate, $endDate)])
+                ->sortByDesc(fn (array $pair) => $pair[1]);
+
+            $best = $free->first();
+
+            if ($best && $best[1] >= $required) {
+                return $best[0];
+            }
+        }
+
+        return $candidates->sortByDesc('quantity')->first();
     }
 
     /**

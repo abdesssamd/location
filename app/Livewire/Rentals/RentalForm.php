@@ -484,7 +484,9 @@ class RentalForm extends Component
             $expanded = $service->expandToRentalRows(
                 $pack,
                 $selectedPack['selected_products'] ?? [],
-                max(1, (int) ($selectedPack['quantity'] ?? 1))
+                max(1, (int) ($selectedPack['quantity'] ?? 1)),
+                $this->start_date,
+                $this->end_date
             );
 
             foreach ($expanded as $row) {

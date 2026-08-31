@@ -385,3 +385,40 @@ it('refuse la location dun pack par categorie si aucun article dispo', function 
 
     expect(Rental::where('customer_id', $this->customer->id)->count())->toBe(0);
 });
+
+it('choisit une variante libre de la categorie si une autre est deja reservee sur la periode', function () {
+    // Reproduit le cas reel : plusieurs variantes de taille dans une meme categorie,
+    // une seule est reservee sur les dates demandees. Le pack ne doit pas se bloquer
+    // sur cette variante-la, il doit basculer sur une autre variante libre.
+    $catCostume = Category::create(['store_id' => $this->store->id, 'name' => 'Costumes VAR']);
+
+    $reserved = Product::create(['store_id' => $this->store->id, 'name' => 'Costume 48', 'reference' => 'C-48', 'category_id' => $catCostume->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 1, 'status' => 'available']);
+    $free = Product::create(['store_id' => $this->store->id, 'name' => 'Costume 50', 'reference' => 'C-50', 'category_id' => $catCostume->id, 'rental_price' => 3000, 'caution_price' => 10000, 'quantity' => 1, 'status' => 'available']);
+
+    $start = now()->addDay()->toDateString();
+    $end = now()->addDays(3)->toDateString();
+
+    // Une location existante engage deja la variante 48 sur ces dates.
+    $otherRental = Rental::create([
+        'store_id' => $this->store->id, 'customer_id' => $this->customer->id, 'user_id' => $this->user->id,
+        'reference' => 'LOC-VAR-PRIOR', 'start_date' => $start, 'end_date' => $end,
+        'status' => 'reserved', 'subtotal' => 3000, 'total' => 3000,
+    ]);
+    \App\Models\RentalItem::create(['store_id' => $this->store->id, 'rental_id' => $otherRental->id, 'product_id' => $reserved->id, 'quantity' => 1, 'unit_price' => 3000, 'line_total' => 3000]);
+
+    $pack = createCategoryPack($this->store->id, 'PACK-VAR', [$catCostume->id], ['pack_price' => 2500]);
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Rentals\RentalForm::class)
+        ->set('customer_id', $this->customer->id)
+        ->set('start_date', $start)
+        ->set('end_date', $end)
+        ->set('packs', [['pack_id' => $pack->id, 'quantity' => 1, 'selected_products' => []]])
+        ->call('save');
+
+    $rental = Rental::where('customer_id', $this->customer->id)->where('reference', '!=', 'LOC-VAR-PRIOR')->latest('id')->first();
+
+    expect($rental)->not->toBeNull();
+    expect($rental->items()->count())->toBe(1);
+    expect($rental->items()->first()->product_id)->toBe($free->id);
+});

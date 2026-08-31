@@ -20,7 +20,12 @@ class PackService
         $pack->loadMissing('items.product');
 
         foreach ($pack->items as $packItem) {
-            $product = $this->resolveProductForItem($packItem, $selectedProductsByPackItem[$packItem->id] ?? null);
+            $product = $this->resolveProductForItem(
+                $packItem,
+                $selectedProductsByPackItem[$packItem->id] ?? null,
+                $startDate,
+                $endDate
+            );
             $requiredQty = max(1, (int) $packItem->quantity) * max(1, $packQuantity);
 
             $availableQty = $product?->quantity ?? 0;
@@ -31,6 +36,15 @@ class PackService
                 && $product->status !== Product::STATUS_OFFLINE
                 && $product->status !== Product::STATUS_LOST;
 
+            // Dire ce qui bloque : « indisponible » sans motif n'aide personne.
+            $reason = match (true) {
+                $ok => null,
+                ! $product && $packItem->category_id !== null => 'aucun article dans cette catégorie pour ce magasin',
+                ! $product => 'article introuvable',
+                in_array($product->status, [Product::STATUS_OFFLINE, Product::STATUS_LOST], true) => 'article '.($product->status === Product::STATUS_LOST ? 'perdu' : 'hors service'),
+                default => $availableQty.' libre(s) sur la période, '.$requiredQty.' requis',
+            };
+
             $components[] = [
                 'pack_item_id' => $packItem->id,
                 'product_id' => $product?->id,
@@ -39,6 +53,7 @@ class PackService
                 'required_qty' => $requiredQty,
                 'available_qty' => $availableQty,
                 'status' => $ok ? 'available' : 'unavailable',
+                'reason' => $reason,
             ];
 
             if (! $ok) {
@@ -57,14 +72,16 @@ class PackService
      * @param array<int, int> $selectedProductsByPackItem
      * @return array<int, array<string, mixed>>
      */
-    public function expandToRentalRows(Pack $pack, array $selectedProductsByPackItem = [], int $packQuantity = 1): array
+    public function expandToRentalRows(Pack $pack, array $selectedProductsByPackItem = [], int $packQuantity = 1, ?string $startDate = null, ?string $endDate = null): array
     {
         $rows = [];
 
         $pack->loadMissing('items.product');
 
         foreach ($pack->items as $packItem) {
-            $product = $this->resolveProductForItem($packItem, $selectedProductsByPackItem[$packItem->id] ?? null);
+            // Mêmes dates que le contrôle de disponibilité : sinon la réservation
+            // peut choisir une variante différente de celle annoncée comme libre.
+            $product = $this->resolveProductForItem($packItem, $selectedProductsByPackItem[$packItem->id] ?? null, $startDate, $endDate);
 
             if (! $product) {
                 continue;
@@ -115,7 +132,7 @@ class PackService
         return $rows;
     }
 
-    protected function resolveProductForItem(PackItem $packItem, ?int $selectedProductId): ?Product
+    protected function resolveProductForItem(PackItem $packItem, ?int $selectedProductId, ?string $startDate = null, ?string $endDate = null): ?Product
     {
         if ($selectedProductId) {
             $candidate = Product::find($selectedProductId);
@@ -124,6 +141,6 @@ class PackService
             }
         }
 
-        return $packItem->resolvedProduct();
+        return $packItem->resolvedProduct($startDate, $endDate);
     }
 }
