@@ -174,3 +174,64 @@ it('supprime et duplique un article', function () {
 
     expect(Product::find($product->id))->toBeNull();
 });
+it('applique les photos a toutes les variantes de taille creees', function () {
+    \Illuminate\Support\Facades\Storage::fake('public');
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Products\ProductForm::class)
+        ->set('name', 'Costume Photo')
+        ->set('reference', 'PHOTO-1')
+        ->set('sizes', ['40', '42', '50', '58'])
+        ->set('rental_price', '5000')
+        ->set('caution_price', '10000')
+        ->set('photos', [\Illuminate\Http\UploadedFile::fake()->image('costume.jpg', 800, 800)])
+        ->call('save');
+
+    $variants = Product::where('store_id', $this->store->id)->where('name', 'Costume Photo')->get();
+    expect($variants)->toHaveCount(4);
+
+    foreach ($variants as $variant) {
+        $images = \App\Models\ProductImage::where('product_id', $variant->id)->get();
+        expect($images)->toHaveCount(1);
+        expect($images->first()->is_primary)->toBeTrue();
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($images->first()->path);
+    }
+});
+
+it('propose les tailles de la categorie selectionnee dans le formulaire', function () {
+    $costumes = \App\Models\Category::create(['store_id' => $this->store->id, 'name' => 'Costumes Test', 'sizes' => ['40', '42', '50', '58']]);
+    $chaussures = \App\Models\Category::create(['store_id' => $this->store->id, 'name' => 'Chaussures Test', 'sizes' => ['36', '37', '38', '39']]);
+
+    $component = Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Products\ProductForm::class)
+        ->set('category_id', $costumes->id);
+
+    expect($component->viewData('sizePresets'))->toBe(['40', '42', '50', '58']);
+    expect($component->viewData('usingCategorySizes'))->toBeTrue();
+
+    $component->set('category_id', $chaussures->id);
+    expect($component->viewData('sizePresets'))->toBe(['36', '37', '38', '39']);
+});
+
+it('revient a la liste generique si la categorie n a pas de tailles definies', function () {
+    $decoration = \App\Models\Category::create(['store_id' => $this->store->id, 'name' => 'Décoration Test']);
+
+    $component = Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Products\ProductForm::class)
+        ->set('category_id', $decoration->id);
+
+    expect($component->viewData('usingCategorySizes'))->toBeFalse();
+    expect($component->viewData('sizePresets'))->toBe(\App\Livewire\Products\ProductForm::sizePresets());
+});
+
+it('reinitialise les tailles cochees quand on change de categorie a la creation', function () {
+    $costumes = \App\Models\Category::create(['store_id' => $this->store->id, 'name' => 'Costumes Reset', 'sizes' => ['40', '42']]);
+    $chaussures = \App\Models\Category::create(['store_id' => $this->store->id, 'name' => 'Chaussures Reset', 'sizes' => ['36', '37']]);
+
+    Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Products\ProductForm::class)
+        ->set('category_id', $costumes->id)
+        ->set('sizes', ['40', '42'])
+        ->set('category_id', $chaussures->id)
+        ->assertSet('sizes', []);
+});

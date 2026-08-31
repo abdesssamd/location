@@ -15,6 +15,7 @@ class CategoryManager extends Component
     public string $name = '';
     public ?int $parent_id = null;
     public string $color = '#14213f';
+    public string $sizesInput = '';
     public ?int $store_id = null;
     public ?int $filterStoreId = null;
 
@@ -40,6 +41,12 @@ class CategoryManager extends Component
             'parent_id' => $this->parent_id,
             'name' => $this->name,
             'color' => $this->color,
+            'sizes' => collect(explode(',', $this->sizesInput))
+                ->map(fn ($s) => trim($s))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all() ?: null,
         ];
 
         if ($this->editingId) {
@@ -57,7 +64,7 @@ class CategoryManager extends Component
             AuditLogger::created($category, 'category.created');
         }
 
-        $this->reset(['name', 'parent_id', 'color', 'editingId', 'store_id']);
+        $this->reset(['name', 'parent_id', 'color', 'sizesInput', 'editingId', 'store_id']);
         session()->flash('status', 'Catégorie enregistrée.');
     }
 
@@ -68,6 +75,7 @@ class CategoryManager extends Component
         $this->name = $category->name;
         $this->parent_id = $category->parent_id;
         $this->color = $category->color ?? '#14213f';
+        $this->sizesInput = implode(', ', $category->sizes ?? []);
         $this->store_id = $category->store_id;
     }
 

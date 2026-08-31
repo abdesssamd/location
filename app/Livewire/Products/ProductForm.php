@@ -155,6 +155,15 @@ class ProductForm extends Component
         }
     }
 
+    public function updatedCategoryId(): void
+    {
+        // À la création seulement : les tailles cochées avant le changement de
+        // catégorie ne correspondent plus forcément à la nouvelle liste.
+        if (! $this->productId) {
+            $this->sizes = [];
+        }
+    }
+
     public function updatedPhotos(): void
     {
         $this->validate([
@@ -324,13 +333,23 @@ class ProductForm extends Component
             $created->push($product);
         }
 
-        // Les photos sont attachées à la première variante
+        // Chaque variante de taille reçoit sa propre copie des photos : un
+        // costume en 4 tailles reste visuellement le même article, la photo
+        // doit apparaître sur chacune, pas uniquement sur la première.
+        $photos = $this->photos;
+
+        foreach ($created as $variant) {
+            $this->photos = $photos;
+            $this->storePhotosFor($variant);
+        }
+
+        $this->photos = [];
+
         $first = $created->first();
         $this->product = $first;
         $this->productId = $first->id;
-        $this->storePhotosFor($first);
 
-        session()->flash('status', count($created).' articles créés (une variante par taille). Les photos sont sur la première taille.');
+        session()->flash('status', count($created).' articles créés (une variante par taille), avec les mêmes photos sur chacune.');
 
         $this->redirect(route('products.index'), navigate: true);
     }
@@ -397,7 +416,14 @@ class ProductForm extends Component
         $needsStore = $this->isSuperAdmin();
         $stores = $needsStore ? \App\Models\Store::where('status', 'active')->orderBy('name')->get() : collect();
         $colorPresets = self::colorPresets();
-        $sizePresets = self::sizePresets();
+
+        // Tailles propres à la catégorie choisie (héritées de la catégorie
+        // parente si elle n'en définit pas) ; à défaut, la liste générique.
+        $categorySizes = $this->category_id
+            ? (Category::withoutGlobalScopes()->with('parent')->find($this->category_id))?->effectiveSizes()
+            : null;
+        $sizePresets = ! empty($categorySizes) ? $categorySizes : self::sizePresets();
+        $usingCategorySizes = ! empty($categorySizes);
         $statuses = [
             'available' => 'Disponible',
             'reserved' => 'Réservé',
@@ -410,7 +436,7 @@ class ProductForm extends Component
             'offline' => 'Hors service',
         ];
 
-        return view('livewire.products.product-form', compact('categories', 'statuses', 'needsStore', 'stores', 'colorPresets', 'sizePresets'));
+        return view('livewire.products.product-form', compact('categories', 'statuses', 'needsStore', 'stores', 'colorPresets', 'sizePresets', 'usingCategorySizes'));
     }
 
     public static function colorPresets(): array

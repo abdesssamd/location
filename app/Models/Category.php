@@ -18,8 +18,32 @@ class Category extends Model
         'name',
         'icon',
         'color',
+        'sizes',
         'sort_order',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'sizes' => 'array',
+        ];
+    }
+
+    /**
+     * Tailles disponibles pour cette catégorie ; hérite de la catégorie parente
+     * si elle n'en définit pas elle-même (ex. une sous-catégorie « Costumes
+     * homme » sans tailles propres utilise celles de « Costumes »).
+     *
+     * @return array<int, string>
+     */
+    public function effectiveSizes(): array
+    {
+        if (! empty($this->sizes)) {
+            return $this->sizes;
+        }
+
+        return $this->parent?->effectiveSizes() ?? [];
+    }
 
     public function parent(): BelongsTo
     {

@@ -34,6 +34,12 @@
                         <label class="text-sm font-medium text-zinc-700">Couleur</label>
                         <input wire:model="color" type="color" class="h-10 w-full rounded-xl border border-zinc-300" />
                     </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-zinc-700">Tailles disponibles</label>
+                        <input wire:model="sizesInput" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" placeholder="40, 42, 50, 58" />
+                        <p class="text-xs text-zinc-500">Séparées par des virgules. Proposées automatiquement à la création d'un article de cette catégorie. Laissez vide pour hériter de la catégorie parente, ou utiliser la liste générale.</p>
+                        @error('sizesInput') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
                     @if ($needsStore)
                         <div class="space-y-2">
                             <label class="text-sm font-medium text-zinc-700">Boutique *</label>
@@ -49,7 +55,7 @@
                     <div class="flex gap-2">
                         <button type="submit" class="rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ $editingId ? 'Enregistrer' : 'Ajouter' }}</button>
                         @if ($editingId)
-                            <button type="button" wire:click="$set('editingId', null)" wire:click="reset('name','parent_id','color')" class="rounded-xl border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">Annuler</button>
+                            <button type="button" wire:click="$set('editingId', null)" wire:click="reset('name','parent_id','color','sizesInput')" class="rounded-xl border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">Annuler</button>
                         @endif
                     </div>
                 </form>
@@ -81,6 +87,9 @@
                                     <button wire:click="delete({{ $cat->id }})" wire:confirm="Supprimer cette catégorie ?" class="rounded-lg p-1.5 text-zinc-500 hover:bg-rose-50 hover:text-rose-600"><flux:icon.trash variant="mini" /></button>
                                 </div>
                             </div>
+                            @if (! empty($cat->sizes))
+                                <p class="mt-1.5 text-xs text-zinc-500">Tailles : {{ implode(', ', $cat->sizes) }}</p>
+                            @endif
                             @if ($cat->children->count())
                                 <div class="mt-2 space-y-1 border-t border-zinc-100 pt-2">
                                     @foreach ($cat->children as $child)

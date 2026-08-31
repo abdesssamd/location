@@ -39,7 +39,7 @@
                             <div class="space-y-2">
                                 <label class="text-sm font-medium text-zinc-700">Catégorie</label>
                                 <div class="flex gap-2">
-                                    <select wire:model="category_id" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none">
+                                    <select wire:model.live="category_id" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none">
                                         <option value="">— Sans catégorie —</option>
                                         @foreach ($categories as $cat)
                                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -70,6 +70,9 @@
                             </div>
                             <div class="space-y-2">
                                 <label class="text-sm font-medium text-zinc-700">Tailles</label>
+                                @if ($usingCategorySizes)
+                                    <p class="text-xs text-zinc-500">Tailles de la catégorie sélectionnée.</p>
+                                @endif
                                 <div class="flex flex-wrap gap-1.5">
                                     @foreach ($sizePresets as $presetSize)
                                         <label class="inline-flex cursor-pointer items-center">
