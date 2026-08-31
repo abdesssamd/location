@@ -84,6 +84,18 @@ class RentalForm extends Component
             ])->values()->toArray();
         }
 
+        // Depuis le calendrier : clic sur une date vide, dates pré-remplies.
+        if (! $rental && request()->has('start')) {
+            $start = \Carbon\Carbon::parse(request()->query('start'));
+            $this->start_date = $start->toDateString();
+
+            // « end » est déjà la dernière date incluse (le calendrier l'a
+            // décrémentée avant de construire l'URL) : ne pas la retrancher
+            // une seconde fois ici.
+            $end = request()->has('end') ? \Carbon\Carbon::parse(request()->query('end')) : $start->copy()->addDay();
+            $this->end_date = $end->max($start)->toDateString();
+        }
+
         if (request()->has('customer')) {
             $this->customer_id = (int) request()->query('customer');
         }
