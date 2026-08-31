@@ -27,9 +27,11 @@
             </div>
         </div>
 
+        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Location</p>
+
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Chiffre d'affaires</p>
+                <p class="text-xs text-zinc-500">Chiffre d'affaires location</p>
                 <p class="mt-1 text-2xl font-semibold text-zinc-900">{{ money($revenue) }}</p>
             </div>
             <div class="card card-pad">
@@ -120,6 +122,58 @@
                     </div>
                 @empty
                     <p class="py-4 text-center text-sm text-zinc-500">Aucun pack loué sur la période.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <p class="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Vente</p>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Chiffre d'affaires vente</p>
+                <p class="mt-1 text-2xl font-semibold text-zinc-900">{{ money($saleRevenue) }}</p>
+            </div>
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Ventes</p>
+                <p class="mt-1 text-2xl font-semibold text-zinc-900">{{ $saleCount }}</p>
+            </div>
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Panier moyen</p>
+                <p class="mt-1 text-2xl font-semibold text-zinc-900">{{ money($saleAverage) }}</p>
+            </div>
+        </div>
+
+        <div class="card card-pad">
+            <h2 class="text-sm font-semibold text-zinc-900">Chiffre d'affaires vente (mensuel)</h2>
+            <div class="mt-4 flex h-44 items-end gap-2">
+                @foreach ($monthlySales as $month)
+                    <div class="flex flex-1 flex-col items-center gap-1">
+                        <span class="text-[10px] text-zinc-400">{{ number_format($month['amount'] / 1000, 1, ',') }}k</span>
+                        <div class="w-full rounded-t-lg bg-violet-600 transition hover:bg-violet-500" style="height: {{ max(2, round($month['amount'] / $maxMonthlySales * 130)) }}px" title="{{ $month['label'] }}"></div>
+                        <span class="text-[10px] text-zinc-500">{{ $month['label'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="card card-pad">
+            <h2 class="text-sm font-semibold text-zinc-900">Top articles vendus</h2>
+            <div class="mt-4 space-y-3">
+                @forelse ($topSoldProducts as $index => $product)
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">{{ $index + 1 }}</span>
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm">
+                                <span class="font-medium text-zinc-800">{{ $product['name'] }}</span>
+                                <span class="text-zinc-500">{{ $product['qty'] }} × · {{ money($product['revenue']) }}</span>
+                            </div>
+                            <div class="mt-1 h-2 overflow-hidden rounded-full bg-zinc-100">
+                                <div class="h-full rounded-full bg-violet-600" style="width: {{ round($product['qty'] / $maxTopSold * 100) }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-4 text-center text-sm text-zinc-500">Aucune vente sur la période.</p>
                 @endforelse
             </div>
         </div>

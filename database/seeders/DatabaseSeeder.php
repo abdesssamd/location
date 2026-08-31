@@ -64,6 +64,8 @@ class DatabaseSeeder extends Seeder
             // Locations / Réservations
             'rentals.view', 'rentals.create', 'rentals.return', 'rentals.checkout',
             'reservations.view', 'reservations.create', 'reservations.cancel',
+            // Ventes
+            'sales.view', 'sales.create', 'sales.cancel',
             // Contrats
             'contracts.view', 'contracts.create', 'contracts.pdf', 'contracts.delete',
             // Paiements
@@ -93,6 +95,7 @@ class DatabaseSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.edit',
                 'rentals.view', 'rentals.create', 'rentals.return', 'rentals.checkout',
                 'reservations.view', 'reservations.create', 'reservations.cancel',
+                'sales.view', 'sales.create', 'sales.cancel',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
                 'reports.view', 'settings.manage', 'users.manage',
@@ -102,6 +105,7 @@ class DatabaseSeeder extends Seeder
                 'packs.view', 'packs.create',
                 'rentals.view', 'rentals.create',
                 'reservations.view', 'reservations.create', 'reservations.cancel',
+                'sales.view', 'sales.create',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
             ],
@@ -114,6 +118,7 @@ class DatabaseSeeder extends Seeder
             'employee' => [
                 'products.view', 'packs.view', 'customers.view',
                 'rentals.view', 'reservations.view', 'contracts.view', 'payments.view',
+                'sales.view',
             ],
         ];
 

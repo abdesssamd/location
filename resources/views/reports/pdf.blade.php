@@ -19,8 +19,9 @@
     <h1>{{ $store?->name ?? 'LouerPro' }}</h1>
     <p class="muted">Rapport du {{ $data['from'] }} au {{ $data['to'] }}</p>
 
+    <h2 class="section">Location</h2>
     <div>
-        <div class="kpi"><div class="muted">Chiffre d'affaires</div><div class="v">{{ money($data['revenue']) }}</div></div>
+        <div class="kpi"><div class="muted">Chiffre d'affaires location</div><div class="v">{{ money($data['revenue']) }}</div></div>
         <div class="kpi"><div class="muted">Remboursements</div><div class="v">{{ money($data['refunds']) }}</div></div>
         <div class="kpi"><div class="muted">Locations</div><div class="v">{{ $data['rentalCount'] }}</div></div>
     </div>
@@ -44,6 +45,25 @@
             <tbody>
                 @foreach ($data['topPacks'] as $p)
                     <tr><td>{{ $p['label'] }}</td><td>{{ $p['rentals'] }}</td><td>{{ number_format($p['revenue'], 0, ',', ' ') }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="section">Vente</h2>
+    <div>
+        <div class="kpi"><div class="muted">Chiffre d'affaires vente</div><div class="v">{{ money($data['saleRevenue']) }}</div></div>
+        <div class="kpi"><div class="muted">Ventes</div><div class="v">{{ $data['saleCount'] }}</div></div>
+        <div class="kpi"><div class="muted">Panier moyen</div><div class="v">{{ money($data['saleAverage']) }}</div></div>
+    </div>
+
+    <div class="section">
+        <h2>Top articles vendus</h2>
+        <table>
+            <thead><tr><th>Article</th><th>Quantité</th><th>Revenu ({{ currency_symbol(store_currency()) }})</th></tr></thead>
+            <tbody>
+                @foreach ($data['topSoldProducts'] as $p)
+                    <tr><td>{{ $p['name'] }}</td><td>{{ $p['qty'] }}</td><td>{{ number_format($p['revenue'], 0, ',', ' ') }}</td></tr>
                 @endforeach
             </tbody>
         </table>

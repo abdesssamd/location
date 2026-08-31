@@ -47,6 +47,7 @@ class StockMovement extends Model
             'damage' => 'Nettoyage / Endommagé',
             'lost' => 'Perdu',
             'adjust' => 'Ajustement',
+            'sale' => 'Vente',
         ];
     }
 
@@ -59,6 +60,7 @@ class StockMovement extends Model
             'damage' => 'badge-yellow',
             'lost' => 'badge-red',
             'adjust' => 'badge-zinc',
+            'sale' => 'badge-violet',
             default => 'badge-zinc',
         };
     }

@@ -49,3 +49,19 @@ it('exporte les paiements en CSV', function () {
         ->call('exportPaymentsCsv')
         ->assertFileDownloaded('paiements-'.now()->format('Ymd').'.csv');
 });
+it('inclut les paiements du jour meme dans la periode du rapport', function () {
+    // Bug precedemment corrige : Payment.date (cast 'date') se serialise en
+    // "Y-m-d H:i:s" a l'ecriture ; comparer whereBetween('date', [.., "aujourd'hui"])
+    // excluait a tort les paiements du jour meme, la comparaison de chaines
+    // "2026-08-31 00:00:00" <= "2026-08-31" etant fausse.
+    $customer = Customer::create(['store_id' => $this->store->id, 'first_name' => 'Ali', 'last_name' => 'Cherif', 'phone' => '0550 11 22 33']);
+    $rental = Rental::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'user_id' => $this->user->id, 'reference' => 'LOC-2026-0099', 'start_date' => now(), 'end_date' => now()->addDays(2), 'status' => 'active', 'subtotal' => 5000, 'total' => 5000]);
+    Payment::create(['store_id' => $this->store->id, 'rental_id' => $rental->id, 'user_id' => $this->user->id, 'reference' => 'PAY-2026-0099', 'amount' => 5000, 'method' => 'cash', 'type' => 'payment', 'date' => now()->toDateString()]);
+
+    $component = Livewire::actingAs($this->user)
+        ->test(\App\Livewire\Reports\Reports::class)
+        ->set('from', now()->startOfYear()->toDateString())
+        ->set('to', now()->toDateString());
+
+    expect($component->viewData('revenue'))->toBe(5000);
+});

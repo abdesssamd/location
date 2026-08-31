@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Rental;
 use App\Models\RentalItem;
+use App\Models\Sale;
 use App\Services\StoreContext;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -29,26 +30,45 @@ class Reports extends Component
         $from = $this->from ?: now()->startOfYear()->toDateString();
         $to = $this->to ?: now()->toDateString();
 
+        // Location et vente sont deux activités distinctes : les mélanger dans un
+        // seul chiffre d'affaires masquerait laquelle fait réellement gagner de
+        // l'argent au magasin. Chaque paiement est donc rattaché à l'une ou
+        // l'autre selon qu'il porte rental_id ou sale_id.
         $payments = Payment::with(['rental.customer'])
             ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-            ->whereBetween('date', [$from, $to])
+            ->whereNotNull('rental_id')
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
             ->orderBy('date')
             ->get();
 
         $refunds = (int) Payment::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->whereNotNull('rental_id')
             ->where('type', 'refund')
-            ->whereBetween('date', [$from, $to])
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
             ->sum('amount');
 
         $revenue = (int) $payments->where('type', '!=', 'refund')->sum('amount');
         $count = $payments->where('type', '!=', 'refund')->count();
 
         $rentals = Rental::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-            ->whereBetween('start_date', [$from, $to])
+            ->whereDate('start_date', '>=', $from)
+            ->whereDate('start_date', '<=', $to)
             ->get();
 
         $rentalCount = $rentals->count();
         $average = $rentalCount > 0 ? (int) round($revenue / $rentalCount) : 0;
+
+        $sales = Sale::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->where('status', Sale::STATUS_COMPLETED)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->get();
+
+        $saleRevenue = (int) $sales->sum('total');
+        $saleCount = $sales->count();
+        $saleAverage = $saleCount > 0 ? (int) round($saleRevenue / $saleCount) : 0;
 
         $monthly = collect(range(11, 0))
             ->map(function ($i) use ($payments) {
@@ -58,6 +78,30 @@ class Reports extends Component
                 return ['label' => $date->translatedFormat('M y'), 'amount' => $amount];
             });
         $maxMonthly = max(1, (int) $monthly->max('amount'));
+
+        $monthlySales = collect(range(11, 0))
+            ->map(function ($i) use ($sales) {
+                $date = now()->startOfMonth()->subMonths($i);
+                $amount = (int) $sales->where('date', '>=', $date->copy())->where('date', '<=', $date->copy()->endOfMonth())->sum('total');
+
+                return ['label' => $date->translatedFormat('M y'), 'amount' => $amount];
+            });
+        $maxMonthlySales = max(1, (int) $monthlySales->max('amount'));
+
+        $topSoldProducts = \App\Models\SaleItem::query()
+            ->whereHas('sale', fn ($q) => $q->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', Sale::STATUS_COMPLETED)->whereDate('date', '>=', $from)->whereDate('date', '<=', $to))
+            ->selectRaw('product_name, SUM(quantity) as qty, SUM(line_total) as revenue')
+            ->groupBy('product_name')
+            ->orderByDesc('qty')
+            ->limit(8)
+            ->get()
+            ->map(fn ($item) => [
+                'name' => $item->product_name,
+                'qty' => (int) $item->qty,
+                'revenue' => (int) $item->revenue,
+            ]);
+
+        $maxTopSold = max(1, (int) $topSoldProducts->max('qty'));
 
         $topProducts = RentalItem::query()
             ->whereHas('rental', fn ($q) => $q->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', '!=', 'cancelled'))
@@ -94,7 +138,8 @@ class Reports extends Component
         });
 
         return compact('from', 'to', 'payments', 'refunds', 'revenue', 'count', 'rentalCount', 'average',
-            'monthly', 'maxMonthly', 'topProducts', 'maxTop', 'topPacks', 'statuses');
+            'monthly', 'maxMonthly', 'topProducts', 'maxTop', 'topPacks', 'statuses',
+            'saleRevenue', 'saleCount', 'saleAverage', 'monthlySales', 'maxMonthlySales', 'topSoldProducts', 'maxTopSold');
     }
 
     public function exportPaymentsCsv(): StreamedResponse
@@ -105,7 +150,9 @@ class Reports extends Component
 
         $payments = Payment::with(['rental.customer'])
             ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-            ->whereBetween('date', [$from, $to])
+            ->whereNotNull('rental_id')
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
             ->orderBy('date')
             ->get();
 
@@ -139,10 +186,14 @@ class Reports extends Component
         $rows = [];
         $rows[] = ['Rapport du '.$data['from'].' au '.$data['to']];
         $rows[] = [];
-        $rows[] = ['Chiffre d\'affaires', $data['revenue'].' DA'];
+        $rows[] = ['Chiffre d\'affaires — Location', $data['revenue'].' DA'];
         $rows[] = ['Remboursements', $data['refunds'].' DA'];
         $rows[] = ['Nombre de locations', $data['rentalCount']];
-        $rows[] = ['Panier moyen', $data['average'].' DA'];
+        $rows[] = ['Panier moyen (location)', $data['average'].' DA'];
+        $rows[] = [];
+        $rows[] = ['Chiffre d\'affaires — Vente', $data['saleRevenue'].' DA'];
+        $rows[] = ['Nombre de ventes', $data['saleCount']];
+        $rows[] = ['Panier moyen (vente)', $data['saleAverage'].' DA'];
         $rows[] = [];
         $rows[] = ['Top articles (quantité)', ''];
         $rows[] = ['Article', 'Quantité', 'Revenu (DA)'];

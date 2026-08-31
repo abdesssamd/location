@@ -14,6 +14,7 @@ class Payment extends Model
     protected $fillable = [
         'store_id',
         'rental_id',
+        'sale_id',
         'user_id',
         'reference',
         'amount',
@@ -35,6 +36,11 @@ class Payment extends Model
     public function rental(): BelongsTo
     {
         return $this->belongsTo(Rental::class);
+    }
+
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
     }
 
     public function user(): BelongsTo

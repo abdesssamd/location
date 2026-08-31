@@ -103,6 +103,13 @@
                     </a>
                 @endif
 
+                @if (Route::has('sales.index') && auth()->user()->can('sales.view'))
+                    <a href="{{ route('sales.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('sales.*')]) wire:navigate title="Ventes">
+                        <span class="nav-item__icon"><flux:icon.shopping-bag class="size-5" /></span>
+                        <span class="nav-item__label">Ventes</span>
+                    </a>
+                @endif
+
                 @if (Route::has('payments.index') && auth()->user()->can('payments.view'))
                     <a href="{{ route('payments.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('payments.*')]) wire:navigate title="Paiements">
                         <span class="nav-item__icon"><flux:icon.banknotes class="size-5" /></span>

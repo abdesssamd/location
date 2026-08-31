@@ -157,6 +157,19 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:rentals.view'])
         ->name('calendar');
 
+    // --- Ventes ---
+    Route::get('sales', \App\Livewire\Sales\SaleList::class)
+        ->middleware(['store.context', 'permission:sales.view'])
+        ->name('sales.index');
+
+    Route::get('sales/create', \App\Livewire\Sales\SalePos::class)
+        ->middleware(['store.context', 'permission:sales.create'])
+        ->name('sales.create');
+
+    Route::get('sales/{sale}', \App\Livewire\Sales\SaleShow::class)
+        ->middleware(['store.context', 'permission:sales.view'])
+        ->name('sales.show');
+
     // --- Paiements ---
     Route::get('payments', \App\Livewire\Payments\PaymentManager::class)
         ->middleware(['store.context', 'permission:payments.view'])
