@@ -173,6 +173,9 @@ class SubscriptionService
             'products' => $storeId ? (int) Product::where('store_id', $storeId)->count() : 0,
             'customers' => $storeId ? (int) Customer::where('store_id', $storeId)->count() : 0,
             'users' => $storeId ? (int) User::where('store_id', $storeId)->count() : 0,
+            'rentals' => $storeId ? (int) \App\Models\Rental::where('store_id', $storeId)
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count() : 0,
         ];
     }
 
@@ -188,6 +191,7 @@ class SubscriptionService
             'product' => $plan->max_products,
             'customer' => $plan->max_customers,
             'user' => $plan->max_users,
+            'rental' => $plan->max_rentals_per_month,
             default => null,
         };
 
@@ -201,6 +205,7 @@ class SubscriptionService
             'product' => 'products',
             'customer' => 'customers',
             'user' => 'users',
+            'rental' => 'rentals',
         }] < $max;
     }
 
@@ -219,6 +224,11 @@ class SubscriptionService
         return $this->canCreate('user');
     }
 
+    public function canCreateRental(): bool
+    {
+        return $this->canCreate('rental');
+    }
+
     public function limitMessage(string $resource): string
     {
         $plan = $this->plan();
@@ -227,12 +237,14 @@ class SubscriptionService
             'product' => 'articles',
             'customer' => 'clients',
             'user' => 'utilisateurs',
+            'rental' => 'locations ce mois-ci',
         ];
 
         $max = match ($resource) {
             'product' => $plan?->max_products,
             'customer' => $plan?->max_customers,
             'user' => $plan?->max_users,
+            'rental' => $plan?->max_rentals_per_month,
             default => null,
         };
 

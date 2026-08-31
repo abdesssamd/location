@@ -198,10 +198,16 @@
 
         <div class="mt-12 grid gap-5 lg:grid-cols-3">
             @foreach ($plans as $plan)
-                <div class="card card-pad flex flex-col {{ $plan->is_popular ? 'ring-2 ring-brand-800' : '' }}">
+                <div class="card card-pad relative flex flex-col {{ $plan->is_popular ? 'ring-2 ring-brand-800' : '' }} {{ $plan->hasActivePromo() ? 'ring-2 ring-rose-500' : '' }}">
+                    @if ($plan->hasActivePromo())
+                        <span class="absolute -top-3 right-5 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                            {{ $plan->promo_label ?: 'Promo' }}
+                        </span>
+                    @endif
+
                     <div class="flex items-center justify-between">
                         <h3 class="font-display text-xl font-semibold">{{ $plan->name }}</h3>
-                        @if ($plan->is_popular)
+                        @if ($plan->is_popular && ! $plan->hasActivePromo())
                             <span class="badge-blue">Le plus choisi</span>
                         @endif
                     </div>
@@ -209,9 +215,17 @@
                     <p class="mt-2 text-sm text-zinc-600">{{ $plan->description }}</p>
 
                     <p class="mt-6">
-                        <span class="font-display text-3xl font-semibold tracking-tight">{{ money($plan->price) }}</span>
+                        @if ($plan->hasActivePromo())
+                            <span class="mr-2 text-lg text-zinc-400 line-through">{{ money($plan->price) }}</span>
+                            <span class="font-display text-3xl font-semibold tracking-tight text-rose-600">{{ money($plan->promo_price) }}</span>
+                        @else
+                            <span class="font-display text-3xl font-semibold tracking-tight">{{ money($plan->price) }}</span>
+                        @endif
                         <span class="text-sm text-zinc-500">/ {{ $plan->billing_period === 'yearly' ? 'an' : 'mois' }}</span>
                     </p>
+                    @if ($plan->hasActivePromo() && $plan->promo_ends_at)
+                        <p class="mt-1 text-xs font-medium text-rose-600">Offre valable jusqu'au {{ $plan->promo_ends_at->format('d/m/Y') }}</p>
+                    @endif
 
                     <ul class="mt-6 flex-1 space-y-2 text-sm text-zinc-700">
                         <li class="flex items-start gap-2">
@@ -226,6 +240,12 @@
                             <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-700"></span>
                             {{ $plan->limitLabel($plan->max_users) }} utilisateurs
                         </li>
+                        @if ($plan->max_rentals_per_month !== null)
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-700"></span>
+                                {{ $plan->limitLabel($plan->max_rentals_per_month) }} locations / mois
+                            </li>
+                        @endif
                         @foreach (array_slice($plan->features ?? [], 0, 5) as $feature)
                             <li class="flex items-start gap-2">
                                 <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-700"></span>

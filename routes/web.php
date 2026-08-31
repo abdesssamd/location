@@ -227,6 +227,7 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')
     Route::get('stores/{store}/export', [AdminAuditController::class, 'exportStore'])->name('stores.export');
 
     // --- Abonnements SaaS ---
+    Route::get('plans', \App\Livewire\Admin\PlanManager::class)->name('plans.index');
     Route::get('subscriptions', [\App\Http\Controllers\Admin\AdminSubscriptionController::class, 'index'])->name('subscriptions.index');
     Route::post('subscriptions/{payment}/approve', [\App\Http\Controllers\Admin\AdminSubscriptionController::class, 'approve'])->name('subscriptions.approve');
     Route::post('subscriptions/{payment}/reject', [\App\Http\Controllers\Admin\AdminSubscriptionController::class, 'reject'])->name('subscriptions.reject');

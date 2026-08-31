@@ -60,7 +60,7 @@ class SubscriptionController extends Controller
         $payment = SubscriptionPayment::create([
             'store_id' => $storeId,
             'plan_id' => $plan->id,
-            'amount' => $plan->price,
+            'amount' => $plan->effectivePrice(),
             'method' => 'cash',
             'status' => SubscriptionPayment::STATUS_PENDING,
             'reference' => 'SUB-'.now()->format('Ymd').'-'.strtoupper(substr(uniqid(), -6)),
@@ -100,7 +100,7 @@ class SubscriptionController extends Controller
         SubscriptionPayment::create([
             'store_id' => $storeId,
             'plan_id' => $plan->id,
-            'amount' => $plan->price,
+            'amount' => $plan->effectivePrice(),
             'method' => $data['method'],
             'status' => SubscriptionPayment::STATUS_PENDING,
             'reference' => $data['reference'] ?: ('SUB-'.now()->format('Ymd').'-'.strtoupper(substr(uniqid(), -6))),

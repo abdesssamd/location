@@ -315,6 +315,15 @@ class RentalForm extends Component
      */
     protected function createRental(array $rows, int $subtotal, int $packSavings, int $total): void
     {
+        $storeId = Customer::find($this->customer_id)?->store_id ?? StoreContext::id();
+        $subscription = \App\Services\SubscriptionService::store($storeId);
+
+        if (! $subscription->canCreateRental()) {
+            session()->flash('error', $subscription->limitMessage('rental'));
+
+            return;
+        }
+
         $created = DB::transaction(function () use ($rows, $subtotal, $packSavings, $total) {
             // Verrou + revalidation dans la transaction : deux employés qui réservent
             // le dernier article au même instant ne peuvent plus passer tous les deux.

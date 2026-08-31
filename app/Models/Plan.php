@@ -14,10 +14,14 @@ class Plan extends Model
         'slug',
         'description',
         'price',
+        'promo_price',
+        'promo_ends_at',
+        'promo_label',
         'billing_period',
         'max_users',
         'max_products',
         'max_customers',
+        'max_rentals_per_month',
         'max_storage_mb',
         'features',
         'is_active',
@@ -31,7 +35,22 @@ class Plan extends Model
             'features' => 'array',
             'is_active' => 'boolean',
             'is_popular' => 'boolean',
+            'promo_ends_at' => 'datetime',
         ];
+    }
+
+    /** La promo est active si un prix promo est renseigné et sa date pas encore passée. */
+    public function hasActivePromo(): bool
+    {
+        return $this->promo_price !== null
+            && $this->promo_price < $this->price
+            && (! $this->promo_ends_at || $this->promo_ends_at->isFuture());
+    }
+
+    /** Prix à facturer réellement : promo si active, sinon prix normal. */
+    public function effectivePrice(): int
+    {
+        return $this->hasActivePromo() ? (int) $this->promo_price : (int) $this->price;
     }
 
     public function subscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany

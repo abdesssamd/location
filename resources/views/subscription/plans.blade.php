@@ -14,13 +14,26 @@
 
         <div class="grid gap-6 md:grid-cols-3">
             @foreach ($plans as $plan)
-                <div class="card card-pad relative flex flex-col {{ $plan->is_popular ? 'ring-2 ring-brand-800' : '' }}">
-                    @if ($plan->is_popular)
+                <div class="card card-pad relative flex flex-col {{ $plan->is_popular ? 'ring-2 ring-brand-800' : '' }} {{ $plan->hasActivePromo() ? 'ring-2 ring-rose-500' : '' }}">
+                    @if ($plan->hasActivePromo())
+                        <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white">{{ $plan->promo_label ?: 'Promo' }}</span>
+                    @elseif ($plan->is_popular)
                         <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-800 px-3 py-1 text-xs font-semibold text-white">Populaire</span>
                     @endif
 
                     <h2 class="text-lg font-bold text-zinc-900">{{ $plan->name }}</h2>
-                    <p class="mt-1 text-3xl font-extrabold text-zinc-900">{{ number_format($plan->price, 0, ',', ' ') }} <span class="text-sm font-medium text-zinc-500">DA / {{ $plan->billing_period === 'yearly' ? 'an' : 'mois' }}</span></p>
+                    <p class="mt-1">
+                        @if ($plan->hasActivePromo())
+                            <span class="mr-2 text-lg text-zinc-400 line-through">{{ number_format($plan->price, 0, ',', ' ') }} DA</span>
+                            <span class="text-3xl font-extrabold text-rose-600">{{ number_format($plan->promo_price, 0, ',', ' ') }}</span>
+                        @else
+                            <span class="text-3xl font-extrabold text-zinc-900">{{ number_format($plan->price, 0, ',', ' ') }}</span>
+                        @endif
+                        <span class="text-sm font-medium text-zinc-500">DA / {{ $plan->billing_period === 'yearly' ? 'an' : 'mois' }}</span>
+                    </p>
+                    @if ($plan->hasActivePromo() && $plan->promo_ends_at)
+                        <p class="text-xs font-medium text-rose-600">Offre valable jusqu'au {{ $plan->promo_ends_at->format('d/m/Y') }}</p>
+                    @endif
                     @if ($plan->description)
                         <p class="mt-2 text-sm text-zinc-500">{{ $plan->description }}</p>
                     @endif
@@ -29,6 +42,9 @@
                         <li class="flex items-center gap-2"><flux:icon.check-circle variant="mini" class="size-4 text-emerald-600" /> {{ $plan->limitLabel($plan->max_users) }} utilisateur(s)</li>
                         <li class="flex items-center gap-2"><flux:icon.check-circle variant="mini" class="size-4 text-emerald-600" /> {{ $plan->limitLabel($plan->max_products) }} articles</li>
                         <li class="flex items-center gap-2"><flux:icon.check-circle variant="mini" class="size-4 text-emerald-600" /> {{ $plan->limitLabel($plan->max_customers) }} clients</li>
+                        @if ($plan->max_rentals_per_month !== null)
+                            <li class="flex items-center gap-2"><flux:icon.check-circle variant="mini" class="size-4 text-emerald-600" /> {{ $plan->limitLabel($plan->max_rentals_per_month) }} locations / mois</li>
+                        @endif
                         @foreach ($plan->features ?? [] as $feature)
                             <li class="flex items-center gap-2"><flux:icon.check-circle variant="mini" class="size-4 text-emerald-600" /> {{ $featureLabels[$feature] ?? $feature }}</li>
                         @endforeach

@@ -55,6 +55,7 @@
                             'Articles' => [$usage['products'], $plan->max_products],
                             'Clients' => [$usage['customers'], $plan->max_customers],
                             'Utilisateurs' => [$usage['users'], $plan->max_users],
+                            'Locations ce mois-ci' => [$usage['rentals'], $plan->max_rentals_per_month],
                         ] as $label => [$value, $max])
                             @php $percent = $max ? min(100, (int) round($value / $max * 100)) : min(100, $value * 2); @endphp
                             <div>
