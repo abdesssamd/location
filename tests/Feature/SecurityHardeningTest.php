@@ -283,3 +283,25 @@ it('un utilisateur sans magasin ne voit rien plutot que tout', function () {
     StoreContext::set(null);
     expect(Product::count())->toBeGreaterThan(0);
 });
+
+it('le contexte magasin est pose apres la session et avant le model binding', function () {
+    // Invariant de sécurité : avant StartSession, $request->user() est vide, le
+    // contexte reste nul et le scope tenant se désactive — toutes les données de
+    // tous les magasins deviennent visibles. Après SubstituteBindings, la
+    // résolution des modèles de route échapperait au scope.
+    $route = \Illuminate\Support\Facades\Route::getRoutes()->getByName('products.index');
+    $sorted = array_values(app('router')->gatherRouteMiddleware($route));
+
+    $position = fn (string $class) => array_search($class, $sorted, true);
+
+    $session = $position(\Illuminate\Session\Middleware\StartSession::class);
+    $context = $position(\App\Http\Middleware\SetStoreContext::class);
+    $bindings = $position(\Illuminate\Routing\Middleware\SubstituteBindings::class);
+
+    expect($session)->not->toBeFalse()
+        ->and($context)->not->toBeFalse()
+        ->and($bindings)->not->toBeFalse();
+
+    expect($session)->toBeLessThan($context);
+    expect($context)->toBeLessThan($bindings);
+});

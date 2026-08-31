@@ -28,6 +28,27 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CheckSubscription::class,
         ]);
 
+        /*
+        | Ordre imposé : SetStoreContext doit s'exécuter APRÈS StartSession —
+        | sinon $request->user() est vide et le contexte magasin reste nul, ce qui
+        | désactive le scope tenant — et AVANT SubstituteBindings, pour que la
+        | résolution des modèles de route soit déjà filtrée par magasin.
+        */
+        $middleware->priority([
+            \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Auth\Middleware\AuthenticateSession::class,
+            \Illuminate\Auth\Middleware\Authenticate::class,
+            SetStoreContext::class,
+            \App\Http\Middleware\SetLocale::class,
+            \App\Http\Middleware\CheckSubscription::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Auth\Middleware\Authorize::class,
+        ]);
+
         // Le contexte tenant doit être posé AVANT SubstituteBindings : sinon le
         // model binding résout les modèles sans le scope magasin (fuite inter-magasins).
         $middleware->api(prepend: [
