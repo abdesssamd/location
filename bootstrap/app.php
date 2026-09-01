@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'store.context' => SetStoreContext::class,
             'subscription' => \App\Http\Middleware\CheckSubscription::class,
+            'plan.feature' => \App\Http\Middleware\RequirePlanFeature::class,
             'auth.store.token' => \App\Http\Middleware\ApiTokenAuth::class,
         ]);
 

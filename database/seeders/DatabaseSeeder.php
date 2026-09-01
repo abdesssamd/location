@@ -34,14 +34,14 @@ class DatabaseSeeder extends Seeder
                 'name' => 'PRO', 'slug' => 'pro', 'price' => 3000, 'billing_period' => 'monthly',
                 'description' => 'Le choix des magasins en croissance.',
                 'max_users' => 5, 'max_products' => null, 'max_customers' => null, 'max_storage_mb' => 5120,
-                'features' => ['locations', 'contracts_pdf', 'qr_code', 'statistics', 'notifications', 'packs', 'multi_users', 'export_excel'],
+                'features' => ['locations', 'contracts_pdf', 'qr_code', 'statistics', 'notifications', 'packs', 'multi_users', 'export_excel', 'commercial'],
                 'sort_order' => 2, 'is_popular' => true,
             ],
             [
                 'name' => 'PREMIUM', 'slug' => 'premium', 'price' => 5000, 'billing_period' => 'monthly',
                 'description' => 'Tout illimité, pour les professionnels.',
                 'max_users' => null, 'max_products' => null, 'max_customers' => null, 'max_storage_mb' => 20480,
-                'features' => ['locations', 'contracts_pdf', 'qr_code', 'statistics', 'advanced_statistics', 'notifications', 'packs', 'multi_users', 'export_excel', 'api'],
+                'features' => ['locations', 'contracts_pdf', 'qr_code', 'statistics', 'advanced_statistics', 'notifications', 'packs', 'multi_users', 'export_excel', 'api', 'commercial'],
                 'sort_order' => 3, 'is_popular' => false,
             ],
         ];

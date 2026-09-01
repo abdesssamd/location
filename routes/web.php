@@ -157,40 +157,45 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:rentals.view'])
         ->name('calendar');
 
-    // --- Ventes ---
-    Route::get('sales', \App\Livewire\Sales\SaleList::class)
-        ->middleware(['store.context', 'permission:sales.view'])
-        ->name('sales.index');
+    // --- Gestion commerciale (vente, dépenses, fournisseurs/achats) ---
+    // Regroupées sous plan.feature:commercial : un magasin dont le plan n'inclut
+    // pas ce module n'y accède pas, même avec les permissions de rôle adéquates.
+    Route::middleware(['plan.feature:commercial'])->group(function () {
+        // --- Ventes ---
+        Route::get('sales', \App\Livewire\Sales\SaleList::class)
+            ->middleware(['store.context', 'permission:sales.view'])
+            ->name('sales.index');
 
-    Route::get('sales/create', \App\Livewire\Sales\SalePos::class)
-        ->middleware(['store.context', 'permission:sales.create'])
-        ->name('sales.create');
+        Route::get('sales/create', \App\Livewire\Sales\SalePos::class)
+            ->middleware(['store.context', 'permission:sales.create'])
+            ->name('sales.create');
 
-    Route::get('sales/{sale}', \App\Livewire\Sales\SaleShow::class)
-        ->middleware(['store.context', 'permission:sales.view'])
-        ->name('sales.show');
+        Route::get('sales/{sale}', \App\Livewire\Sales\SaleShow::class)
+            ->middleware(['store.context', 'permission:sales.view'])
+            ->name('sales.show');
 
-    // --- Dépenses ---
-    Route::get('expenses', \App\Livewire\Expenses\ExpenseManager::class)
-        ->middleware(['store.context', 'permission:expenses.view'])
-        ->name('expenses.index');
+        // --- Dépenses ---
+        Route::get('expenses', \App\Livewire\Expenses\ExpenseManager::class)
+            ->middleware(['store.context', 'permission:expenses.view'])
+            ->name('expenses.index');
 
-    // --- Fournisseurs & achats ---
-    Route::get('suppliers', \App\Livewire\Suppliers\SupplierManager::class)
-        ->middleware(['store.context', 'permission:suppliers.view'])
-        ->name('suppliers.index');
+        // --- Fournisseurs & achats ---
+        Route::get('suppliers', \App\Livewire\Suppliers\SupplierManager::class)
+            ->middleware(['store.context', 'permission:suppliers.view'])
+            ->name('suppliers.index');
 
-    Route::get('purchases', \App\Livewire\Purchases\PurchaseList::class)
-        ->middleware(['store.context', 'permission:purchases.view'])
-        ->name('purchases.index');
+        Route::get('purchases', \App\Livewire\Purchases\PurchaseList::class)
+            ->middleware(['store.context', 'permission:purchases.view'])
+            ->name('purchases.index');
 
-    Route::get('purchases/create', \App\Livewire\Purchases\PurchaseForm::class)
-        ->middleware(['store.context', 'permission:purchases.create'])
-        ->name('purchases.create');
+        Route::get('purchases/create', \App\Livewire\Purchases\PurchaseForm::class)
+            ->middleware(['store.context', 'permission:purchases.create'])
+            ->name('purchases.create');
 
-    Route::get('purchases/{purchase}', \App\Livewire\Purchases\PurchaseShow::class)
-        ->middleware(['store.context', 'permission:purchases.view'])
-        ->name('purchases.show');
+        Route::get('purchases/{purchase}', \App\Livewire\Purchases\PurchaseShow::class)
+            ->middleware(['store.context', 'permission:purchases.view'])
+            ->name('purchases.show');
+    });
 
     // --- Paiements ---
     Route::get('payments', \App\Livewire\Payments\PaymentManager::class)

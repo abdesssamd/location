@@ -81,6 +81,7 @@ class Plan extends Model
             'multi_users' => 'Utilisateurs multiples',
             'export_excel' => 'Export Excel/CSV',
             'api' => 'Accès API',
+            'commercial' => 'Gestion commerciale (vente, dépenses, fournisseurs)',
         ];
     }
 }

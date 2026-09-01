@@ -1,5 +1,13 @@
 @props(['title' => null])
 
+@php
+    // Le super admin n'est jamais restreint par un plan (il n'appartient à
+    // aucun magasin) ; pour un utilisateur de magasin, la gestion commerciale
+    // n'apparaît dans le menu que si le plan du magasin l'inclut.
+    $hasCommercial = auth()->user()->is_super_admin
+        || \App\Services\SubscriptionService::store()->hasFeature('commercial');
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}" @class(['dark' => auth()->user()?->is_super_admin === false && session('theme') === 'dark'])>
     <head>
@@ -103,7 +111,7 @@
                     </a>
                 @endif
 
-                @if (Route::has('sales.index') && auth()->user()->can('sales.view'))
+                @if ($hasCommercial && Route::has('sales.index') && auth()->user()->can('sales.view'))
                     <a href="{{ route('sales.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('sales.*')]) wire:navigate title="Ventes">
                         <span class="nav-item__icon"><flux:icon.shopping-bag class="size-5" /></span>
                         <span class="nav-item__label">Ventes</span>
@@ -117,21 +125,21 @@
                     </a>
                 @endif
 
-                @if (Route::has('expenses.index') && auth()->user()->can('expenses.view'))
+                @if ($hasCommercial && Route::has('expenses.index') && auth()->user()->can('expenses.view'))
                     <a href="{{ route('expenses.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('expenses.*')]) wire:navigate title="Dépenses">
                         <span class="nav-item__icon"><flux:icon.receipt-percent class="size-5" /></span>
                         <span class="nav-item__label">Dépenses</span>
                     </a>
                 @endif
 
-                @if (Route::has('purchases.index') && auth()->user()->can('purchases.view'))
+                @if ($hasCommercial && Route::has('purchases.index') && auth()->user()->can('purchases.view'))
                     <a href="{{ route('purchases.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('purchases.*')]) wire:navigate title="Achats">
                         <span class="nav-item__icon"><flux:icon.truck class="size-5" /></span>
                         <span class="nav-item__label">Achats</span>
                     </a>
                 @endif
 
-                @if (Route::has('suppliers.index') && auth()->user()->can('suppliers.view'))
+                @if ($hasCommercial && Route::has('suppliers.index') && auth()->user()->can('suppliers.view'))
                     <a href="{{ route('suppliers.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('suppliers.*')]) wire:navigate title="Fournisseurs">
                         <span class="nav-item__icon"><flux:icon.building-storefront class="size-5" /></span>
                         <span class="nav-item__label">Fournisseurs</span>
