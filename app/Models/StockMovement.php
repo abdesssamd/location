@@ -48,6 +48,7 @@ class StockMovement extends Model
             'lost' => 'Perdu',
             'adjust' => 'Ajustement',
             'sale' => 'Vente',
+            'purchase' => 'Achat fournisseur',
         ];
     }
 
@@ -61,6 +62,7 @@ class StockMovement extends Model
             'lost' => 'badge-red',
             'adjust' => 'badge-zinc',
             'sale' => 'badge-violet',
+            'purchase' => 'badge-green',
             default => 'badge-zinc',
         };
     }

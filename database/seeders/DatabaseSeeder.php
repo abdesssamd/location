@@ -68,6 +68,9 @@ class DatabaseSeeder extends Seeder
             'sales.view', 'sales.create', 'sales.cancel',
             // Dépenses
             'expenses.view', 'expenses.create', 'expenses.delete',
+            // Fournisseurs & achats
+            'suppliers.view', 'suppliers.manage',
+            'purchases.view', 'purchases.create', 'purchases.cancel',
             // Contrats
             'contracts.view', 'contracts.create', 'contracts.pdf', 'contracts.delete',
             // Paiements
@@ -99,6 +102,8 @@ class DatabaseSeeder extends Seeder
                 'reservations.view', 'reservations.create', 'reservations.cancel',
                 'sales.view', 'sales.create', 'sales.cancel',
                 'expenses.view', 'expenses.create', 'expenses.delete',
+                'suppliers.view', 'suppliers.manage',
+                'purchases.view', 'purchases.create', 'purchases.cancel',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
                 'reports.view', 'settings.manage', 'users.manage',
@@ -117,6 +122,7 @@ class DatabaseSeeder extends Seeder
                 'packs.view',
                 'categories.view', 'rentals.return', 'rentals.checkout',
                 'rentals.view', 'contracts.view',
+                'suppliers.view', 'purchases.view', 'purchases.create',
             ],
             'employee' => [
                 'products.view', 'packs.view', 'customers.view',

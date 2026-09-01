@@ -69,9 +69,10 @@
         </table>
     </div>
 
-    <h2 class="section">Dépenses &amp; bénéfice</h2>
+    <h2 class="section">Dépenses, achats &amp; bénéfice</h2>
     <div>
         <div class="kpi"><div class="muted">Dépenses</div><div class="v">{{ money($data['expenseTotal']) }}</div></div>
+        <div class="kpi"><div class="muted">Achats fournisseurs</div><div class="v">{{ money($data['purchaseTotal']) }}</div></div>
         <div class="kpi"><div class="muted">Bénéfice net</div><div class="v">{{ money($data['netProfit']) }}</div></div>
     </div>
 

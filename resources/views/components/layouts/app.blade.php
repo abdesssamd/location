@@ -124,6 +124,20 @@
                     </a>
                 @endif
 
+                @if (Route::has('purchases.index') && auth()->user()->can('purchases.view'))
+                    <a href="{{ route('purchases.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('purchases.*')]) wire:navigate title="Achats">
+                        <span class="nav-item__icon"><flux:icon.truck class="size-5" /></span>
+                        <span class="nav-item__label">Achats</span>
+                    </a>
+                @endif
+
+                @if (Route::has('suppliers.index') && auth()->user()->can('suppliers.view'))
+                    <a href="{{ route('suppliers.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('suppliers.*')]) wire:navigate title="Fournisseurs">
+                        <span class="nav-item__icon"><flux:icon.building-storefront class="size-5" /></span>
+                        <span class="nav-item__label">Fournisseurs</span>
+                    </a>
+                @endif
+
                 @if (Route::has('reports.index') && auth()->user()->can('reports.view'))
                     <a href="{{ route('reports.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('reports.*')]) wire:navigate title="Rapports">
                         <span class="nav-item__icon"><flux:icon.chart-bar class="size-5" /></span>

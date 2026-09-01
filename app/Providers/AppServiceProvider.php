@@ -8,16 +8,20 @@ use App\Models\Expense;
 use App\Models\Pack;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Purchase;
 use App\Models\Rental;
 use App\Models\Sale;
+use App\Models\Supplier;
 use App\Policies\CategoryPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\ExpensePolicy;
 use App\Policies\PackPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\PurchasePolicy;
 use App\Policies\RentalPolicy;
 use App\Policies\SalePolicy;
+use App\Policies\SupplierPolicy;
 use App\Listeners\LogAuthentication;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -63,6 +67,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Sale::class, SalePolicy::class);
         Gate::policy(Expense::class, ExpensePolicy::class);
+        Gate::policy(Supplier::class, SupplierPolicy::class);
+        Gate::policy(Purchase::class, PurchasePolicy::class);
 
         config([
             'livewire.layout' => 'components.layouts.app',

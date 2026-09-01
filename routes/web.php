@@ -175,6 +175,23 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:expenses.view'])
         ->name('expenses.index');
 
+    // --- Fournisseurs & achats ---
+    Route::get('suppliers', \App\Livewire\Suppliers\SupplierManager::class)
+        ->middleware(['store.context', 'permission:suppliers.view'])
+        ->name('suppliers.index');
+
+    Route::get('purchases', \App\Livewire\Purchases\PurchaseList::class)
+        ->middleware(['store.context', 'permission:purchases.view'])
+        ->name('purchases.index');
+
+    Route::get('purchases/create', \App\Livewire\Purchases\PurchaseForm::class)
+        ->middleware(['store.context', 'permission:purchases.create'])
+        ->name('purchases.create');
+
+    Route::get('purchases/{purchase}', \App\Livewire\Purchases\PurchaseShow::class)
+        ->middleware(['store.context', 'permission:purchases.view'])
+        ->name('purchases.show');
+
     // --- Paiements ---
     Route::get('payments', \App\Livewire\Payments\PaymentManager::class)
         ->middleware(['store.context', 'permission:payments.view'])

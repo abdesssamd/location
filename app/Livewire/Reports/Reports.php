@@ -5,6 +5,7 @@ namespace App\Livewire\Reports;
 use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Purchase;
 use App\Models\Rental;
 use App\Models\RentalItem;
 use App\Models\Sale;
@@ -112,10 +113,17 @@ class Reports extends Component
 
         $expenseTotal = (int) $expenses->sum('amount');
 
+        $purchaseTotal = (int) Purchase::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->where('status', Purchase::STATUS_RECEIVED)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->sum('total');
+
         // Bénéfice net = ce qui rentre (location + vente) moins ce qui sort
-        // (dépenses). Les remboursements de location réduisent déjà le chiffre
-        // d'affaires location (voir $revenue), pas la peine de les retrancher ici.
-        $netProfit = $revenue + $saleRevenue - $expenseTotal;
+        // (dépenses + achats fournisseurs). Les remboursements de location
+        // réduisent déjà le chiffre d'affaires location (voir $revenue), pas
+        // la peine de les retrancher ici.
+        $netProfit = $revenue + $saleRevenue - $expenseTotal - $purchaseTotal;
 
         $expensesByCategory = $expenses
             ->groupBy(fn ($e) => $e->category?->name ?? 'Sans catégorie')
@@ -162,7 +170,7 @@ class Reports extends Component
         return compact('from', 'to', 'payments', 'refunds', 'revenue', 'count', 'rentalCount', 'average',
             'monthly', 'maxMonthly', 'topProducts', 'maxTop', 'topPacks', 'statuses',
             'saleRevenue', 'saleCount', 'saleAverage', 'monthlySales', 'maxMonthlySales', 'topSoldProducts', 'maxTopSold',
-            'expenseTotal', 'netProfit', 'expensesByCategory', 'maxExpenseCategory');
+            'expenseTotal', 'purchaseTotal', 'netProfit', 'expensesByCategory', 'maxExpenseCategory');
     }
 
     public function exportPaymentsCsv(): StreamedResponse
@@ -219,7 +227,8 @@ class Reports extends Component
         $rows[] = ['Panier moyen (vente)', $data['saleAverage'].' DA'];
         $rows[] = [];
         $rows[] = ['Dépenses', $data['expenseTotal'].' DA'];
-        $rows[] = ['Bénéfice net (location + vente − dépenses)', $data['netProfit'].' DA'];
+        $rows[] = ['Achats fournisseurs', $data['purchaseTotal'].' DA'];
+        $rows[] = ['Bénéfice net (location + vente − dépenses − achats)', $data['netProfit'].' DA'];
         $rows[] = [];
         $rows[] = ['Dépenses par catégorie', ''];
         $rows[] = ['Catégorie', 'Montant (DA)'];

@@ -29,7 +29,7 @@
 
         <div class="card card-pad flex flex-wrap items-center justify-between gap-4 border-l-4 {{ $netProfit >= 0 ? 'border-l-emerald-500' : 'border-l-rose-500' }}">
             <div>
-                <p class="text-xs text-zinc-500">Bénéfice net sur la période (location + vente − dépenses)</p>
+                <p class="text-xs text-zinc-500">Bénéfice net sur la période (location + vente − dépenses − achats)</p>
                 <p class="mt-1 text-3xl font-bold {{ $netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ money($netProfit) }}</p>
             </div>
             <div class="flex gap-6 text-sm">
@@ -40,6 +40,10 @@
                 <div>
                     <p class="text-xs text-zinc-500">Dépenses</p>
                     <p class="font-semibold text-rose-600">− {{ money($expenseTotal) }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-zinc-500">Achats</p>
+                    <p class="font-semibold text-rose-600">− {{ money($purchaseTotal) }}</p>
                 </div>
             </div>
         </div>
@@ -195,12 +199,16 @@
             </div>
         </div>
 
-        <p class="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Dépenses</p>
+        <p class="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Dépenses &amp; achats</p>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-3">
             <div class="card card-pad">
                 <p class="text-xs text-zinc-500">Total des dépenses</p>
                 <p class="mt-1 text-2xl font-semibold text-rose-600">{{ money($expenseTotal) }}</p>
+            </div>
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Total des achats fournisseurs</p>
+                <p class="mt-1 text-2xl font-semibold text-rose-600">{{ money($purchaseTotal) }}</p>
             </div>
             <div class="card card-pad">
                 <p class="text-xs text-zinc-500">Bénéfice net</p>
