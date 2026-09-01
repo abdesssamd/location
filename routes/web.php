@@ -170,6 +170,11 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:sales.view'])
         ->name('sales.show');
 
+    // --- Dépenses ---
+    Route::get('expenses', \App\Livewire\Expenses\ExpenseManager::class)
+        ->middleware(['store.context', 'permission:expenses.view'])
+        ->name('expenses.index');
+
     // --- Paiements ---
     Route::get('payments', \App\Livewire\Payments\PaymentManager::class)
         ->middleware(['store.context', 'permission:payments.view'])
@@ -210,6 +215,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('files/subscription-proofs/{payment}', [\App\Http\Controllers\SecureFileController::class, 'subscriptionProof'])
         ->middleware('store.context')
         ->name('files.subscription-proof');
+
+    Route::get('files/expenses/{expense}', [\App\Http\Controllers\SecureFileController::class, 'expense'])
+        ->middleware(['store.context', 'permission:expenses.view'])
+        ->name('files.expense');
 
     // --- Rapports ---
     Route::get('reports', \App\Livewire\Reports\Reports::class)

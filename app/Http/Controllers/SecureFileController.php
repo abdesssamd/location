@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\RentalItem;
 use App\Models\SubscriptionPayment;
@@ -32,6 +33,14 @@ class SecureFileController extends Controller
         $this->authorize('view', $item->rental);
 
         return $this->stream(($item->return_image_paths ?? [])[$index] ?? null);
+    }
+
+    /** Justificatif d'une dépense. */
+    public function expense(Expense $expense): StreamedResponse
+    {
+        $this->authorize('view', $expense);
+
+        return $this->stream($expense->proof_path);
     }
 
     /** Justificatif de paiement d'abonnement : le magasin concerné ou le super admin. */

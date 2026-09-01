@@ -117,6 +117,13 @@
                     </a>
                 @endif
 
+                @if (Route::has('expenses.index') && auth()->user()->can('expenses.view'))
+                    <a href="{{ route('expenses.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('expenses.*')]) wire:navigate title="Dépenses">
+                        <span class="nav-item__icon"><flux:icon.receipt-percent class="size-5" /></span>
+                        <span class="nav-item__label">Dépenses</span>
+                    </a>
+                @endif
+
                 @if (Route::has('reports.index') && auth()->user()->can('reports.view'))
                     <a href="{{ route('reports.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('reports.*')]) wire:navigate title="Rapports">
                         <span class="nav-item__icon"><flux:icon.chart-bar class="size-5" /></span>

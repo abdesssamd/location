@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reports;
 
+use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Rental;
@@ -103,6 +104,27 @@ class Reports extends Component
 
         $maxTopSold = max(1, (int) $topSoldProducts->max('qty'));
 
+        $expenses = Expense::with('category')
+            ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->get();
+
+        $expenseTotal = (int) $expenses->sum('amount');
+
+        // Bénéfice net = ce qui rentre (location + vente) moins ce qui sort
+        // (dépenses). Les remboursements de location réduisent déjà le chiffre
+        // d'affaires location (voir $revenue), pas la peine de les retrancher ici.
+        $netProfit = $revenue + $saleRevenue - $expenseTotal;
+
+        $expensesByCategory = $expenses
+            ->groupBy(fn ($e) => $e->category?->name ?? 'Sans catégorie')
+            ->map(fn ($group, $name) => ['name' => $name, 'amount' => (int) $group->sum('amount')])
+            ->sortByDesc('amount')
+            ->values();
+
+        $maxExpenseCategory = max(1, (int) $expensesByCategory->max('amount'));
+
         $topProducts = RentalItem::query()
             ->whereHas('rental', fn ($q) => $q->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', '!=', 'cancelled'))
             ->selectRaw('product_id, SUM(quantity) as qty, SUM(line_total) as revenue')
@@ -139,7 +161,8 @@ class Reports extends Component
 
         return compact('from', 'to', 'payments', 'refunds', 'revenue', 'count', 'rentalCount', 'average',
             'monthly', 'maxMonthly', 'topProducts', 'maxTop', 'topPacks', 'statuses',
-            'saleRevenue', 'saleCount', 'saleAverage', 'monthlySales', 'maxMonthlySales', 'topSoldProducts', 'maxTopSold');
+            'saleRevenue', 'saleCount', 'saleAverage', 'monthlySales', 'maxMonthlySales', 'topSoldProducts', 'maxTopSold',
+            'expenseTotal', 'netProfit', 'expensesByCategory', 'maxExpenseCategory');
     }
 
     public function exportPaymentsCsv(): StreamedResponse
@@ -194,6 +217,15 @@ class Reports extends Component
         $rows[] = ['Chiffre d\'affaires — Vente', $data['saleRevenue'].' DA'];
         $rows[] = ['Nombre de ventes', $data['saleCount']];
         $rows[] = ['Panier moyen (vente)', $data['saleAverage'].' DA'];
+        $rows[] = [];
+        $rows[] = ['Dépenses', $data['expenseTotal'].' DA'];
+        $rows[] = ['Bénéfice net (location + vente − dépenses)', $data['netProfit'].' DA'];
+        $rows[] = [];
+        $rows[] = ['Dépenses par catégorie', ''];
+        $rows[] = ['Catégorie', 'Montant (DA)'];
+        foreach ($data['expensesByCategory'] as $e) {
+            $rows[] = [$e['name'], $e['amount']];
+        }
         $rows[] = [];
         $rows[] = ['Top articles (quantité)', ''];
         $rows[] = ['Article', 'Quantité', 'Revenu (DA)'];

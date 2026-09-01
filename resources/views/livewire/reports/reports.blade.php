@@ -27,6 +27,23 @@
             </div>
         </div>
 
+        <div class="card card-pad flex flex-wrap items-center justify-between gap-4 border-l-4 {{ $netProfit >= 0 ? 'border-l-emerald-500' : 'border-l-rose-500' }}">
+            <div>
+                <p class="text-xs text-zinc-500">Bénéfice net sur la période (location + vente − dépenses)</p>
+                <p class="mt-1 text-3xl font-bold {{ $netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ money($netProfit) }}</p>
+            </div>
+            <div class="flex gap-6 text-sm">
+                <div>
+                    <p class="text-xs text-zinc-500">Revenus</p>
+                    <p class="font-semibold text-zinc-900">{{ money($revenue + $saleRevenue) }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-zinc-500">Dépenses</p>
+                    <p class="font-semibold text-rose-600">− {{ money($expenseTotal) }}</p>
+                </div>
+            </div>
+        </div>
+
         <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Location</p>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -174,6 +191,38 @@
                     </div>
                 @empty
                     <p class="py-4 text-center text-sm text-zinc-500">Aucune vente sur la période.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <p class="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Dépenses</p>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Total des dépenses</p>
+                <p class="mt-1 text-2xl font-semibold text-rose-600">{{ money($expenseTotal) }}</p>
+            </div>
+            <div class="card card-pad">
+                <p class="text-xs text-zinc-500">Bénéfice net</p>
+                <p class="mt-1 text-2xl font-semibold {{ $netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ money($netProfit) }}</p>
+            </div>
+        </div>
+
+        <div class="card card-pad">
+            <h2 class="text-sm font-semibold text-zinc-900">Dépenses par catégorie</h2>
+            <div class="mt-4 space-y-3">
+                @forelse ($expensesByCategory as $category)
+                    <div>
+                        <div class="mb-1 flex justify-between text-sm">
+                            <span class="font-medium text-zinc-800">{{ $category['name'] }}</span>
+                            <span class="text-zinc-500">{{ money($category['amount']) }}</span>
+                        </div>
+                        <div class="h-2.5 overflow-hidden rounded-full bg-zinc-100">
+                            <div class="h-full rounded-full bg-rose-500" style="width: {{ round($category['amount'] / $maxExpenseCategory * 100) }}%"></div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-4 text-center text-sm text-zinc-500">Aucune dépense sur la période.</p>
                 @endforelse
             </div>
         </div>

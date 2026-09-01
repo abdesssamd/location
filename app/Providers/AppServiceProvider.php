@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Expense;
 use App\Models\Pack;
 use App\Models\Payment;
 use App\Models\Product;
@@ -11,6 +12,7 @@ use App\Models\Rental;
 use App\Models\Sale;
 use App\Policies\CategoryPolicy;
 use App\Policies\CustomerPolicy;
+use App\Policies\ExpensePolicy;
 use App\Policies\PackPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProductPolicy;
@@ -60,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Sale::class, SalePolicy::class);
+        Gate::policy(Expense::class, ExpensePolicy::class);
 
         config([
             'livewire.layout' => 'components.layouts.app',

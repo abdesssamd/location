@@ -68,6 +68,24 @@
             </tbody>
         </table>
     </div>
+
+    <h2 class="section">Dépenses &amp; bénéfice</h2>
+    <div>
+        <div class="kpi"><div class="muted">Dépenses</div><div class="v">{{ money($data['expenseTotal']) }}</div></div>
+        <div class="kpi"><div class="muted">Bénéfice net</div><div class="v">{{ money($data['netProfit']) }}</div></div>
+    </div>
+
+    <div class="section">
+        <h2>Dépenses par catégorie</h2>
+        <table>
+            <thead><tr><th>Catégorie</th><th>Montant ({{ currency_symbol(store_currency()) }})</th></tr></thead>
+            <tbody>
+                @foreach ($data['expensesByCategory'] as $e)
+                    <tr><td>{{ $e['name'] }}</td><td>{{ number_format($e['amount'], 0, ',', ' ') }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
 

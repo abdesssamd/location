@@ -66,6 +66,8 @@ class DatabaseSeeder extends Seeder
             'reservations.view', 'reservations.create', 'reservations.cancel',
             // Ventes
             'sales.view', 'sales.create', 'sales.cancel',
+            // Dépenses
+            'expenses.view', 'expenses.create', 'expenses.delete',
             // Contrats
             'contracts.view', 'contracts.create', 'contracts.pdf', 'contracts.delete',
             // Paiements
@@ -96,6 +98,7 @@ class DatabaseSeeder extends Seeder
                 'rentals.view', 'rentals.create', 'rentals.return', 'rentals.checkout',
                 'reservations.view', 'reservations.create', 'reservations.cancel',
                 'sales.view', 'sales.create', 'sales.cancel',
+                'expenses.view', 'expenses.create', 'expenses.delete',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
                 'reports.view', 'settings.manage', 'users.manage',
