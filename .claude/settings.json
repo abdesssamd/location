@@ -5,7 +5,8 @@
       "Bash(sed -i '/--muted: #59637244;/d' audit-location.html)",
       "Bash(python -)",
       "Bash(php -l app/Models/PackItem.php)",
-      "Bash(composer show *)"
+      "Bash(composer show *)",
+      "Bash(php artisan *)"
     ]
   }
 }
