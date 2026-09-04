@@ -75,6 +75,8 @@ class DatabaseSeeder extends Seeder
             'contracts.view', 'contracts.create', 'contracts.pdf', 'contracts.delete',
             // Paiements
             'payments.view', 'payments.create', 'payments.refund',
+            // Données financières consolidées (chiffre d'affaires, marges, encaissements)
+            'finance.view',
             // Rapports
             'reports.view',
             // Paramètres & équipe
@@ -106,6 +108,7 @@ class DatabaseSeeder extends Seeder
                 'purchases.view', 'purchases.create', 'purchases.cancel',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
+                'finance.view',
                 'reports.view', 'settings.manage', 'users.manage',
             ],
             'cashier' => [
@@ -116,6 +119,7 @@ class DatabaseSeeder extends Seeder
                 'sales.view', 'sales.create',
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
+                'finance.view',
             ],
             'storekeeper' => [
                 'products.view', 'products.create', 'products.edit', 'stock.manage',
@@ -124,10 +128,12 @@ class DatabaseSeeder extends Seeder
                 'rentals.view', 'contracts.view',
                 'suppliers.view', 'purchases.view', 'purchases.create',
             ],
+            // Un employé accueille les clients et prépare les locations : il voit
+            // les tarifs pour renseigner un client, mais aucune donnée financière
+            // consolidée (encaissements, chiffre d'affaires, marges).
             'employee' => [
                 'products.view', 'packs.view', 'customers.view',
-                'rentals.view', 'reservations.view', 'contracts.view', 'payments.view',
-                'sales.view',
+                'rentals.view', 'reservations.view', 'contracts.view',
             ],
         ];
 

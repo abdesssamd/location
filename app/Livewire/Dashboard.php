@@ -18,7 +18,14 @@ class Dashboard extends Component
     {
         $storeId = StoreContext::id();
 
-        $revenueToday = (int) Payment::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('type', '!=', 'refund')->whereDate('date', now()->toDateString())->sum('amount');
+        // Les montants consolidés ne sont ni calculés ni envoyés à la vue sans
+        // la permission : un employé n'a pas à connaître le chiffre d'affaires
+        // du magasin, même via le HTML de la page.
+        $canSeeFinance = (bool) auth()->user()?->can('finance.view');
+
+        $revenueToday = $canSeeFinance
+            ? (int) Payment::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('type', '!=', 'refund')->whereDate('date', now()->toDateString())->sum('amount')
+            : 0;
         $activeRentals = Rental::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', 'active')->count();
         $reserved = Rental::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', 'reserved')->count();
         $productCount = Product::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->count();
@@ -33,11 +40,13 @@ class Dashboard extends Component
             ->limit(6)
             ->get();
 
-        $recentPayments = Payment::with(['rental.customer'])
-            ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-            ->latest()
-            ->limit(6)
-            ->get();
+        $recentPayments = $canSeeFinance
+            ? Payment::with(['rental.customer'])
+                ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+                ->latest()
+                ->limit(6)
+                ->get()
+            : collect();
 
         $lowStockProducts = Product::with('images')
             ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
@@ -51,10 +60,12 @@ class Dashboard extends Component
             ->where('is_pack_component', true)
             ->whereHas('rental', fn ($q) => $q->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid)));
 
-        $packRevenue = (int) $packBaseQuery->sum('line_total');
-        $packSavings = (int) Rental::query()
-            ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-            ->sum('pack_savings');
+        $packRevenue = $canSeeFinance ? (int) $packBaseQuery->sum('line_total') : 0;
+        $packSavings = $canSeeFinance
+            ? (int) Rental::query()
+                ->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+                ->sum('pack_savings')
+            : 0;
 
         $packsActive = (int) RentalItem::query()
             ->where('is_pack_component', true)
@@ -68,10 +79,12 @@ class Dashboard extends Component
             ->distinct('rental_id')
             ->count('rental_id');
 
+        // Le classement des packs reste utile sans les montants : on ne calcule
+        // la colonne revenue que pour les profils autorisés.
         $topPacks = RentalItem::query()
             ->where('is_pack_component', true)
             ->whereHas('rental', fn ($q) => $q->when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))->where('status', '!=', 'cancelled'))
-            ->selectRaw('COALESCE(NULLIF(pack_name, \'\'), pack_id) as pack_label, COUNT(DISTINCT rental_id) as rentals_count, SUM(line_total) as revenue')
+            ->selectRaw('COALESCE(NULLIF(pack_name, \'\'), pack_id) as pack_label, COUNT(DISTINCT rental_id) as rentals_count, '.($canSeeFinance ? 'SUM(line_total)' : '0').' as revenue')
             ->groupBy('pack_label')
             ->orderByDesc('rentals_count')
             ->limit(5)
@@ -97,15 +110,18 @@ class Dashboard extends Component
 
         $lateCount = $lateRentals->count();
 
-        $monthly = collect(range(11, 0))->map(function ($i) use ($storeId) {
+        $monthly = collect(range(11, 0))->map(function ($i) use ($storeId, $canSeeFinance) {
             $date = now()->startOfMonth()->subMonths($i);
 
             return [
                 'label' => $date->translatedFormat('M'),
-                'amount' => (int) Payment::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
-                    ->where('type', '!=', 'refund')
-                    ->whereBetween('date', [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()])
-                    ->sum('amount'),
+                'amount' => $canSeeFinance
+                    ? (int) Payment::when($storeId, fn ($q, $sid) => $q->where('store_id', $sid))
+                        ->where('type', '!=', 'refund')
+                        ->whereDate('date', '>=', $date->copy()->startOfMonth()->toDateString())
+                        ->whereDate('date', '<=', $date->copy()->endOfMonth()->toDateString())
+                        ->sum('amount')
+                    : 0,
             ];
         });
 
@@ -127,7 +143,8 @@ class Dashboard extends Component
             'revenueToday', 'activeRentals', 'reserved', 'productCount', 'customerCount', 'lowStock',
             'upcomingReturns', 'recentPayments', 'lowStockProducts',
             'packRevenue', 'packSavings', 'packsActive', 'packsReserved', 'topPacks', 'topPackProducts',
-            'lateRentals', 'lateCount', 'chartLabels', 'chartRevenue', 'topProductLabels', 'topProductQty'
+            'lateRentals', 'lateCount', 'chartLabels', 'chartRevenue', 'topProductLabels', 'topProductQty',
+            'canSeeFinance'
         ));
     }
 }

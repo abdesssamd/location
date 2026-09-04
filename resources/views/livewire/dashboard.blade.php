@@ -30,11 +30,19 @@
         @endif
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="stat-card animate-fade-up" style="animation-delay: 0s">
-                <div class="stat-card__icon"><flux:icon.banknotes variant="mini" /></div>
-                <p class="stat-card__label mt-4">Encaissé aujourd'hui</p>
-                <p class="stat-card__value">{{ money($revenueToday) }}</p>
-            </div>
+            @if ($canSeeFinance)
+                <div class="stat-card animate-fade-up" style="animation-delay: 0s">
+                    <div class="stat-card__icon"><flux:icon.banknotes variant="mini" /></div>
+                    <p class="stat-card__label mt-4">Encaissé aujourd'hui</p>
+                    <p class="stat-card__value">{{ money($revenueToday) }}</p>
+                </div>
+            @else
+                <div class="stat-card animate-fade-up" style="animation-delay: 0s">
+                    <div class="stat-card__icon"><flux:icon.users variant="mini" /></div>
+                    <p class="stat-card__label mt-4">Clients</p>
+                    <p class="stat-card__value">{{ $customerCount }}</p>
+                </div>
+            @endif
             <div class="stat-card animate-fade-up" style="animation-delay: 0.06s">
                 <div class="stat-card__icon"><flux:icon.archive-box variant="mini" /></div>
                 <p class="stat-card__label mt-4">Locations en cours</p>
@@ -71,20 +79,22 @@
             </div>
         @endif
 
-        <div class="grid gap-6 lg:grid-cols-2 stagger">
-            <div class="card card-pad animate-fade-up">
-                <h2 class="section-title">Évolution du chiffre d'affaires (12 mois)</h2>
-                @if (! empty($chartRevenue) && array_sum($chartRevenue) > 0)
-                    <div class="mt-4 rounded-xl bg-gradient-to-br from-brand-50/40 to-transparent p-3">
-                        <canvas id="revenueChart" height="120"></canvas>
-                    </div>
-                @else
-                    <div class="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-200 py-10">
-                        <div class="skeleton h-28 w-full rounded-xl"></div>
-                        <p class="text-xs text-zinc-400">Aucune donnée de chiffre d'affaires pour le moment.</p>
-                    </div>
-                @endif
-            </div>
+        <div class="grid gap-6 stagger {{ $canSeeFinance ? 'lg:grid-cols-2' : '' }}">
+            @if ($canSeeFinance)
+                <div class="card card-pad animate-fade-up">
+                    <h2 class="section-title">Évolution du chiffre d'affaires (12 mois)</h2>
+                    @if (! empty($chartRevenue) && array_sum($chartRevenue) > 0)
+                        <div class="mt-4 rounded-xl bg-gradient-to-br from-brand-50/40 to-transparent p-3">
+                            <canvas id="revenueChart" height="120"></canvas>
+                        </div>
+                    @else
+                        <div class="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-200 py-10">
+                            <div class="skeleton h-28 w-full rounded-xl"></div>
+                            <p class="text-xs text-zinc-400">Aucune donnée de chiffre d'affaires pour le moment.</p>
+                        </div>
+                    @endif
+                </div>
+            @endif
             <div class="card card-pad animate-fade-up">
                 <h2 class="section-title">Articles les plus loués</h2>
                 @if (! empty($topProductQty) && array_sum($topProductQty) > 0)
@@ -100,11 +110,13 @@
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 stagger">
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Revenus packs</p>
-                <p class="mt-1 text-xl font-semibold text-zinc-900">{{ money($packRevenue) }}</p>
-            </div>
+        <div class="grid gap-4 sm:grid-cols-2 stagger {{ $canSeeFinance ? 'lg:grid-cols-5' : 'lg:grid-cols-3' }}">
+            @if ($canSeeFinance)
+                <div class="card card-pad">
+                    <p class="text-xs text-zinc-500">Revenus packs</p>
+                    <p class="mt-1 text-xl font-semibold text-zinc-900">{{ money($packRevenue) }}</p>
+                </div>
+            @endif
             <div class="card card-pad">
                 <p class="text-xs text-zinc-500">Packs actuellement loués</p>
                 <p class="mt-1 text-xl font-semibold text-emerald-600">{{ $packsActive }}</p>
@@ -113,10 +125,12 @@
                 <p class="text-xs text-zinc-500">Packs réservés</p>
                 <p class="mt-1 text-xl font-semibold text-blue-600">{{ $packsReserved }}</p>
             </div>
-            <div class="card card-pad">
-                <p class="text-xs text-zinc-500">Économie accordée</p>
-                <p class="mt-1 text-xl font-semibold text-emerald-700">{{ money($packSavings) }}</p>
-            </div>
+            @if ($canSeeFinance)
+                <div class="card card-pad">
+                    <p class="text-xs text-zinc-500">Économie accordée</p>
+                    <p class="mt-1 text-xl font-semibold text-emerald-700">{{ money($packSavings) }}</p>
+                </div>
+            @endif
             <div class="card card-pad">
                 <p class="text-xs text-zinc-500">Articles dans packs</p>
                 <p class="mt-1 text-xl font-semibold text-zinc-900">{{ $topPackProducts->sum('used_qty') }}</p>
@@ -172,6 +186,7 @@
             </div>
         </div>
 
+        @if ($canSeeFinance)
         <div class="card card-pad">
             <div class="flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-zinc-900">Derniers paiements</h2>
@@ -196,6 +211,7 @@
                 </table>
             </div>
         </div>
+        @endif
 
         <div class="grid gap-6 lg:grid-cols-2">
             <div class="card card-pad">
@@ -207,7 +223,9 @@
                                 <p class="font-medium text-zinc-800">{{ $pack->pack_label }}</p>
                                 <p class="text-xs text-zinc-500">{{ (int) $pack->rentals_count }} location(s)</p>
                             </div>
-                            <p class="font-semibold text-zinc-900">{{ money((int) $pack->revenue) }}</p>
+                            @if ($canSeeFinance)
+                                <p class="font-semibold text-zinc-900">{{ money((int) $pack->revenue) }}</p>
+                            @endif
                         </div>
                     @empty
                         <p class="py-6 text-center text-sm text-zinc-500">Aucune location de pack pour le moment.</p>
