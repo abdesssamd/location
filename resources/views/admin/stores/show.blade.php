@@ -75,8 +75,19 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            @php($roleLabels = \App\Models\User::roleLabels())
-                            <span class="badge-blue">{{ $admin->roles->pluck('name')->map(fn ($r) => $roleLabels[$r] ?? $r)->join(', ') }}</span>
+                            @php
+                                // Les libellés sont calculés ici plutôt que dans {{ }} :
+                                // une fonction fléchée dans une expression d'affichage
+                                // casse la compilation Blade.
+                                $roleLabels = \App\Models\User::roleLabels();
+                                $displayedRoles = $admin->roles
+                                    ->pluck('name')
+                                    ->map(function ($role) use ($roleLabels) {
+                                        return $roleLabels[$role] ?? $role;
+                                    })
+                                    ->join(', ');
+                            @endphp
+                            <span class="badge-blue">{{ $displayedRoles }}</span>
                             <form method="POST" action="{{ route('admin.stores.admins.reset-password', [$store, $admin]) }}">
                                 @csrf
                                 <button type="submit" class="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50" title="Générer et envoyer un nouveau mot de passe">

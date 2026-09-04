@@ -20,6 +20,23 @@ beforeEach(function () {
     SubscriptionService::createSubscription($this->store, Plan::where('slug', 'pro')->firstOrFail(), Subscription::STATUS_ACTIVE, 0);
 });
 
+it('affiche la fiche magasin avec le selecteur de role', function () {
+    // Rend reellement la vue : les tests qui se limitent aux POST ne compilent
+    // pas le Blade et laissent passer une erreur de syntaxe.
+    $user = User::create([
+        'store_id' => $this->store->id, 'name' => 'Caissier Affiche', 'email' => 'affiche-role@test.com',
+        'password' => 'password', 'is_active' => true,
+    ]);
+    $user->assignRole('cashier');
+
+    $this->actingAs($this->superAdmin)
+        ->get(route('admin.stores.show', $this->store))
+        ->assertOk()
+        ->assertSee('Caissier')          // libellé du role dans la liste
+        ->assertSee('Magasinier')        // options du selecteur
+        ->assertDontSee('super_admin');
+});
+
 it('cree un utilisateur de magasin avec le role choisi', function () {
     $this->actingAs($this->superAdmin)
         ->post(route('admin.stores.admins.store', $this->store), [
