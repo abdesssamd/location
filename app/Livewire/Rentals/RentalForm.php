@@ -35,6 +35,7 @@ class RentalForm extends Component
 
     public string $start_date = '';
     public string $end_date = '';
+    public string $previous_start_date = '';
     public int|string $discount = 0;
     public int|string $caution = 0;
     public string $notes = '';
@@ -60,6 +61,7 @@ class RentalForm extends Component
 
         $this->start_date = now()->addDay()->toDateString();
         $this->end_date = now()->addDays(2)->toDateString();
+        $this->previous_start_date = $this->start_date;
 
         if ($rental) {
             if ($rental instanceof Rental) {
@@ -70,6 +72,7 @@ class RentalForm extends Component
             $this->customer_id = $this->rental->customer_id;
             $this->start_date = $this->rental->start_date->toDateString();
             $this->end_date = $this->rental->end_date->toDateString();
+            $this->previous_start_date = $this->start_date;
             $this->discount = $this->rental->discount;
             $this->caution = $this->rental->caution;
             $this->notes = $this->rental->notes ?? '';
@@ -94,6 +97,7 @@ class RentalForm extends Component
             // une seconde fois ici.
             $end = request()->has('end') ? \Carbon\Carbon::parse(request()->query('end')) : $start->copy()->addDay();
             $this->end_date = $end->max($start)->toDateString();
+            $this->previous_start_date = $this->start_date;
         }
 
         if (request()->has('customer')) {
@@ -113,6 +117,46 @@ class RentalForm extends Component
                 $this->mode = 'pack';
                 $this->addPack($pack->id);
             }
+        }
+    }
+
+    /**
+     * La date de fin suit la date de début : on conserve la durée déjà choisie
+     * (au moins un jour) plutôt que de laisser une fin antérieure au début,
+     * qui bloquerait la validation sans que l'utilisateur comprenne pourquoi.
+     */
+    public function updatedStartDate(): void
+    {
+        if (! $this->start_date) {
+            return;
+        }
+
+        $start = \Carbon\Carbon::parse($this->start_date);
+        $previousStart = $this->previous_start_date ? \Carbon\Carbon::parse($this->previous_start_date) : null;
+        $previousEnd = $this->end_date ? \Carbon\Carbon::parse($this->end_date) : null;
+
+        $nights = ($previousStart && $previousEnd && $previousEnd->greaterThan($previousStart))
+            ? $previousStart->diffInDays($previousEnd)
+            : 1;
+
+        $this->end_date = $start->copy()->addDays(max(1, $nights))->toDateString();
+        $this->previous_start_date = $this->start_date;
+    }
+
+    /**
+     * Une fin antérieure au début est corrigée immédiatement : sinon l'erreur
+     * n'apparaît qu'à l'enregistrement, après la saisie de toute la composition.
+     */
+    public function updatedEndDate(): void
+    {
+        if (! $this->start_date || ! $this->end_date) {
+            return;
+        }
+
+        $start = \Carbon\Carbon::parse($this->start_date);
+
+        if (\Carbon\Carbon::parse($this->end_date)->lessThan($start)) {
+            $this->end_date = $start->copy()->addDay()->toDateString();
         }
     }
 
@@ -664,7 +708,23 @@ class RentalForm extends Component
         $itemFree = [];
         foreach ($this->items as $it) {
             $prod = $picked[$it['product_id']] ?? null;
-            $itemFree[$it['product_id']] = $prod ? $availSvc->freeBetween($prod, $startForAvail, $endForAvail) : 0;
+            $itemFree[$it['product_id']] = $prod ? $availSvc->freeBetween($prod, $startForAvail, $endForAvail, $this->rental?->id) : 0;
+        }
+
+        // Un article déjà au panier peut devenir indisponible après un changement
+        // de dates : on le signale tout de suite plutôt qu'à l'enregistrement.
+        $unavailableItems = [];
+        foreach ($this->items as $it) {
+            $productId = (int) $it['product_id'];
+            $required = (int) $it['quantity'];
+
+            if (($itemFree[$productId] ?? 0) < $required) {
+                $unavailableItems[] = [
+                    'name' => $picked[$productId]?->name ?? 'Article',
+                    'free' => (int) ($itemFree[$productId] ?? 0),
+                    'required' => $required,
+                ];
+            }
         }
 
         $selectedCustomer = $this->customer_id ? Customer::find($this->customer_id) : null;
@@ -689,7 +749,8 @@ class RentalForm extends Component
             'pickedPacks',
             'rows',
             'productFree',
-            'itemFree'
+            'itemFree',
+            'unavailableItems'
         ));
     }
 }

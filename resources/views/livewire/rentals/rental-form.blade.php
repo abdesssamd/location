@@ -346,15 +346,28 @@
                     <div class="mt-3 space-y-3">
                         <div class="space-y-1">
                             <label class="text-sm text-zinc-600">Début</label>
-                            <input wire:model="start_date" type="date" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
+                            <input wire:model.live="start_date" type="date" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
                             @error('start_date') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
                             <label class="text-sm text-zinc-600">Fin</label>
-                            <input wire:model="end_date" type="date" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
+                            <input wire:model.live="end_date" type="date" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
                             @error('end_date') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
+
+                    @if (! empty($unavailableItems))
+                        <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+                            <p class="text-xs font-medium text-rose-800">Indisponible sur ces dates :</p>
+                            <ul class="mt-1 space-y-0.5">
+                                @foreach ($unavailableItems as $unavailable)
+                                    <li class="text-xs text-rose-700">
+                                        {{ $unavailable['name'] }} — libre {{ $unavailable['free'] }}, requis {{ $unavailable['required'] }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="card card-pad">
@@ -364,11 +377,11 @@
                         <div class="flex justify-between"><dt class="text-emerald-700">Économie packs</dt><dd class="text-emerald-700">− {{ money($packSavings) }}</dd></div>
                         <div class="flex justify-between items-center gap-2">
                             <dt class="text-zinc-500">Remise manuelle</dt>
-                            <input wire:model="discount" type="number" min="0" class="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none" />
+                            <input wire:model.live.debounce.400ms="discount" type="number" min="0" class="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none" />
                         </div>
                         <div class="flex justify-between items-center gap-2">
                             <dt class="text-zinc-500">Caution</dt>
-                            <input wire:model="caution" type="number" min="0" class="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none" />
+                            <input wire:model.live.debounce.400ms="caution" type="number" min="0" class="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none" />
                         </div>
                         <div class="border-t border-zinc-100 pt-2 flex justify-between text-base font-semibold"><dt>Total</dt><dd>{{ money($total) }}</dd></div>
                     </dl>
