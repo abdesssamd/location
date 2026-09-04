@@ -3,7 +3,10 @@
         <div class="flex items-center justify-between">
             <div>
                 <a href="{{ route('rentals.index') }}" class="text-sm text-zinc-500 hover:text-zinc-900" wire:navigate>← Retour aux locations</a>
-                <h1 class="page-title">{{ $rental?->exists ? 'Modifier la réservation' : 'Nouvelle réservation' }}</h1>
+                <h1 class="page-title">{{ $rental?->exists ? 'Modifier la réservation' : ($immediate ? 'Nouvelle location' : 'Nouvelle réservation') }}</h1>
+                @if (! $rental?->exists && $immediate)
+                    <p class="mt-1 text-sm text-amber-700">Les articles sortent du stock dès l'enregistrement.</p>
+                @endif
             </div>
         </div>
 
@@ -393,7 +396,7 @@
                 </div>
 
                 <button type="submit" class="w-full rounded-xl bg-brand-800 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700">
-                    {{ $rental?->exists ? 'Enregistrer les modifications' : 'Créer la réservation' }}
+                    {{ $rental?->exists ? 'Enregistrer les modifications' : ($immediate ? 'Créer et démarrer la location' : 'Créer la réservation') }}
                 </button>
             </div>
         </form>

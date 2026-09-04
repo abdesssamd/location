@@ -5,11 +5,18 @@
                 <h1 class="page-title">Tableau de bord</h1>
                 <p class="page-subtitle">Bienvenue, {{ auth()->user()->name }}.</p>
             </div>
-            @can('rentals.create')
-                <a href="{{ route('rentals.create') }}" class="btn btn-primary" wire:navigate>
-                    <flux:icon.plus variant="mini" /> Nouvelle réservation
-                </a>
-            @endcan
+            <div class="flex flex-wrap items-center gap-2">
+                @can('rentals.create')
+                    @can('rentals.checkout')
+                        <a href="{{ route('rentals.create', ['immediate' => 1]) }}" class="btn btn-primary" wire:navigate>
+                            <flux:icon.plus variant="mini" /> Nouvelle location
+                        </a>
+                    @endcan
+                    <a href="{{ route('rentals.create') }}" class="btn btn-secondary" wire:navigate>
+                        <flux:icon.calendar-days variant="mini" /> Nouvelle réservation
+                    </a>
+                @endcan
+            </div>
         </div>
 
         @php

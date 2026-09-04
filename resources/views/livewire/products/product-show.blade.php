@@ -83,6 +83,77 @@
             </div>
         </div>
 
+        <div class="card card-pad">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-zinc-900">Disponibilité</h2>
+                    <p class="mt-0.5 text-xs text-zinc-500">Jours libres pour cet article. Cliquez sur un jour pour lancer une réservation.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-zinc-500">Quantité</label>
+                    <input wire:model.live="planningQuantity" type="number" min="1" max="{{ max(1, $product->quantity) }}"
+                        class="w-16 rounded-lg border border-zinc-300 px-2 py-1 text-center text-sm focus:border-brand-600 focus:outline-none" />
+                    <button type="button" wire:click="previousMonth" class="rounded-lg border border-zinc-300 p-1.5 text-zinc-600 hover:bg-zinc-50" title="Mois précédent">
+                        <flux:icon.chevron-left variant="mini" />
+                    </button>
+                    <button type="button" wire:click="goToToday" class="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">Aujourd'hui</button>
+                    <button type="button" wire:click="nextMonth" class="rounded-lg border border-zinc-300 p-1.5 text-zinc-600 hover:bg-zinc-50" title="Mois suivant">
+                        <flux:icon.chevron-right variant="mini" />
+                    </button>
+                </div>
+            </div>
+
+            <p class="mt-4 text-center text-sm font-medium capitalize text-zinc-800">{{ $planningLabel }}</p>
+
+            <div class="mt-3 grid grid-cols-7 gap-1 text-center">
+                @foreach (['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as $dayName)
+                    <div class="pb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{{ $dayName }}</div>
+                @endforeach
+
+                @for ($i = 0; $i < $leadingBlanks; $i++)
+                    <div></div>
+                @endfor
+
+                @foreach ($planningDays as $day)
+                    @php
+                        $classes = match (true) {
+                            $day['is_past'] => 'border-zinc-100 bg-zinc-50 text-zinc-300',
+                            $day['is_free'] => 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400',
+                            default => 'border-rose-200 bg-rose-50 text-rose-700',
+                        };
+                    @endphp
+
+                    @if ($day['is_free'] && ! $day['is_past'] && auth()->user()->can('rentals.create'))
+                        <a href="{{ route('rentals.create', ['start' => $day['date'], 'product' => $product->id]) }}" wire:navigate
+                           class="rounded-lg border py-1.5 transition {{ $classes }} {{ $day['is_today'] ? 'ring-2 ring-brand-600' : '' }}"
+                           title="{{ $day['free'] }} exemplaire(s) libre(s)">
+                            <span class="block text-sm font-medium">{{ $day['day'] }}</span>
+                            <span class="block text-[10px]">{{ $day['free'] }}</span>
+                        </a>
+                    @else
+                        <div class="rounded-lg border py-1.5 {{ $classes }} {{ $day['is_today'] ? 'ring-2 ring-brand-600' : '' }}"
+                             title="{{ $day['is_past'] ? 'Date passée' : $day['free'].' exemplaire(s) libre(s)' }}">
+                            <span class="block text-sm font-medium">{{ $day['day'] }}</span>
+                            <span class="block text-[10px]">{{ $day['is_past'] ? '—' : $day['free'] }}</span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-zinc-500">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="h-3 w-3 rounded border border-emerald-200 bg-emerald-50"></span> Libre
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="h-3 w-3 rounded border border-rose-200 bg-rose-50"></span> Complet
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="h-3 w-3 rounded border border-zinc-100 bg-zinc-50"></span> Passé
+                </span>
+                <span class="text-zinc-400">Le chiffre indique le nombre d'exemplaires encore libres.</span>
+            </div>
+        </div>
+
         <div class="grid gap-6 lg:grid-cols-2">
             <div class="card card-pad">
                 <h2 class="text-sm font-semibold text-zinc-900">QR Code</h2>

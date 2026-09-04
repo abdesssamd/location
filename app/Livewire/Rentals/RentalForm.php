@@ -36,6 +36,13 @@ class RentalForm extends Component
     public string $start_date = '';
     public string $end_date = '';
     public string $previous_start_date = '';
+
+    /**
+     * Location immédiate : les articles sortent du magasin dès la création
+     * (statut « active »), sans passer par l'étape « Démarrer » de la fiche.
+     * Sert au client qui repart avec la marchandise le jour même.
+     */
+    public bool $immediate = false;
     public int|string $discount = 0;
     public int|string $caution = 0;
     public string $notes = '';
@@ -98,6 +105,21 @@ class RentalForm extends Component
             $end = request()->has('end') ? \Carbon\Carbon::parse(request()->query('end')) : $start->copy()->addDay();
             $this->end_date = $end->max($start)->toDateString();
             $this->previous_start_date = $this->start_date;
+        }
+
+        // ?immediate=1 : location qui démarre tout de suite. Sans effet en
+        // édition, où le statut est déjà fixé.
+        // Sortir des articles est un droit distinct de celui de réserver.
+        if (! $rental && request()->boolean('immediate') && auth()->user()?->can('rentals.checkout')) {
+            $this->immediate = true;
+
+            // Les articles sortent maintenant : la location démarre aujourd'hui,
+            // sauf si une date a été explicitement demandée (?start=).
+            if (! request()->has('start')) {
+                $this->start_date = now()->toDateString();
+                $this->end_date = now()->addDay()->toDateString();
+                $this->previous_start_date = $this->start_date;
+            }
         }
 
         if (request()->has('customer')) {
@@ -368,6 +390,12 @@ class RentalForm extends Component
             return;
         }
 
+        // $immediate est une propriété publique, donc modifiable côté client :
+        // on revérifie le droit de sortie plutôt que de faire confiance à mount().
+        if ($this->immediate && ! auth()->user()?->can('rentals.checkout')) {
+            $this->immediate = false;
+        }
+
         $created = DB::transaction(function () use ($rows, $subtotal, $packSavings, $total) {
             // Verrou + revalidation dans la transaction : deux employés qui réservent
             // le dernier article au même instant ne peuvent plus passer tous les deux.
@@ -384,7 +412,9 @@ class RentalForm extends Component
             return;
         }
 
-        session()->flash('status', 'Réservation '.$created->reference.' créée.');
+        session()->flash('status', $this->immediate
+            ? 'Location '.$created->reference.' créée et démarrée : les articles sont sortis du stock.'
+            : 'Réservation '.$created->reference.' créée.');
         $this->redirect(route('rentals.show', $created), navigate: true);
     }
 
@@ -400,7 +430,7 @@ class RentalForm extends Component
             'reference' => ReferenceGenerator::reference('LOC', Rental::class),
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
-            'status' => 'reserved',
+            'status' => $this->immediate ? 'active' : 'reserved',
             'subtotal' => $subtotal,
             'discount' => (int) $this->discount,
             'pack_savings' => $packSavings,
@@ -411,6 +441,23 @@ class RentalForm extends Component
         ]);
 
         $this->storeItems($rental, $rows);
+
+        // Location immédiate : les articles quittent le magasin maintenant, il
+        // faut donc le mouvement de sortie que ferait normalement le checkout.
+        if ($this->immediate) {
+            foreach ($rows as $item) {
+                StockMovement::create([
+                    'store_id' => $rental->store_id ?? StoreContext::id(),
+                    'product_id' => (int) $item['product_id'],
+                    'user_id' => auth()->id(),
+                    'type' => 'out',
+                    'quantity' => -(int) $item['quantity'],
+                    'reason' => 'Sortie location '.$rental->reference,
+                    'date' => now(),
+                ]);
+            }
+        }
+
         AuditLogger::created($rental, 'rental.created');
 
         return $rental;

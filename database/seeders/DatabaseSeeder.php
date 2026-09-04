@@ -132,8 +132,10 @@ class DatabaseSeeder extends Seeder
             // les tarifs pour renseigner un client, mais aucune donnée financière
             // consolidée (encaissements, chiffre d'affaires, marges).
             'employee' => [
-                'products.view', 'packs.view', 'customers.view',
-                'rentals.view', 'reservations.view', 'contracts.view',
+                'products.view', 'packs.view', 'customers.view', 'customers.create',
+                'rentals.view', 'rentals.create', 'rentals.checkout',
+                'reservations.view', 'reservations.create',
+                'contracts.view',
             ],
         ];
 
