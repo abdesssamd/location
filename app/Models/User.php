@@ -61,4 +61,29 @@ class User extends Authenticatable
             ->map(fn (string $name) => Str::of($name)->substr(0, 1))
             ->implode('');
     }
+
+    /**
+     * Rôles attribuables à un utilisateur de magasin.
+     *
+     * super_admin en est volontairement absent : c'est un rôle plateforme, qui
+     * donnerait accès aux données de tous les magasins.
+     *
+     * @return array<int, string>
+     */
+    public static function assignableRoles(): array
+    {
+        return ['admin', 'manager', 'cashier', 'storekeeper', 'employee'];
+    }
+
+    /** Libellés des rôles, pour les listes déroulantes. */
+    public static function roleLabels(): array
+    {
+        return [
+            'admin' => 'Administrateur',
+            'manager' => 'Gestionnaire',
+            'cashier' => 'Caissier',
+            'storekeeper' => 'Magasinier',
+            'employee' => 'Employé',
+        ];
+    }
 }

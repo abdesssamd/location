@@ -27,7 +27,7 @@ class StoreAdminWelcomeNotification extends Notification
         return (new MailMessage)
             ->subject('Votre compte magasin « '.$this->store->name.' » est prêt')
             ->greeting('Bonjour '.$notifiable->name.',')
-            ->line('Un compte administrateur a été créé pour le magasin « '.$this->store->name.' ».')
+            ->line('Un compte a été créé pour vous sur le magasin « '.$this->store->name.' ».')
             ->line('Email de connexion : '.$notifiable->email)
             ->line('Mot de passe temporaire : '.$this->password)
             ->action('Se connecter', route('login'))

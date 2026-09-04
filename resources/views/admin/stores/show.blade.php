@@ -44,19 +44,25 @@
 
         <div class="card card-pad lg:col-span-2">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-zinc-900">Administrateurs du magasin ({{ $admins->count() }})</h2>
+                <h2 class="text-sm font-semibold text-zinc-900">Utilisateurs du magasin ({{ $admins->count() }})</h2>
             </div>
 
             <form method="POST" action="{{ route('admin.stores.admins.store', $store) }}" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 @csrf
-                <input name="name" placeholder="Nom" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
-                <input name="email" type="email" placeholder="Email" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                <input name="name" value="{{ old('name') }}" placeholder="Nom" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
+                <input name="email" type="email" value="{{ old('email') }}" placeholder="Email" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
                 <input name="password" type="password" placeholder="Mot de passe" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
                 <input name="password_confirmation" type="password" placeholder="Confirmer le mot de passe" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none" />
-                <button type="submit" class="rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 sm:col-span-2 lg:col-span-5">Ajouter</button>
+                <select name="role" required class="rounded-xl border border-zinc-300 px-3 py-2 text-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none">
+                    @foreach (\App\Models\User::roleLabels() as $value => $label)
+                        <option value="{{ $value }}" @selected(old('role', 'admin') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="rounded-xl bg-brand-800 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 sm:col-span-2 lg:col-span-3">Ajouter</button>
             </form>
             @error('password') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
             @error('email') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+            @error('role') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
 
             <div class="mt-5 divide-y divide-zinc-100">
                 @forelse ($admins as $admin)
@@ -69,7 +75,8 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="badge-blue">{{ $admin->roles->pluck('name')->join(', ') }}</span>
+                            @php($roleLabels = \App\Models\User::roleLabels())
+                            <span class="badge-blue">{{ $admin->roles->pluck('name')->map(fn ($r) => $roleLabels[$r] ?? $r)->join(', ') }}</span>
                             <form method="POST" action="{{ route('admin.stores.admins.reset-password', [$store, $admin]) }}">
                                 @csrf
                                 <button type="submit" class="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50" title="Générer et envoyer un nouveau mot de passe">

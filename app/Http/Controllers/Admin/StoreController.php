@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class StoreController extends Controller
@@ -155,9 +156,14 @@ class StoreController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            // super_admin est exclu : c'est un rôle plateforme, il donnerait à un
+            // employé de magasin l'accès à tous les autres magasins.
+            // Facultatif : sans rôle précisé, on crée un administrateur, comme
+            // avant l'ajout du sélecteur.
+            'role' => ['nullable', 'string', Rule::in(User::assignableRoles())],
         ]);
 
-        $admin = User::create([
+        $user = User::create([
             'store_id' => $store->id,
             'name' => $data['name'],
             'email' => $data['email'],
@@ -166,20 +172,21 @@ class StoreController extends Controller
             'locale' => 'fr',
         ]);
 
-        $admin->assignRole('admin');
+        $role = $data['role'] ?? 'admin';
+        $user->assignRole($role);
 
         try {
-            $admin->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
+            $user->notify(new \App\Notifications\StoreAdminWelcomeNotification($store, $data['password']));
         } catch (\Throwable $e) {
             report($e);
-            session()->flash('warning', 'Administrateur créé, mais l\'email de bienvenue n\'a pas pu être envoyé : '.$e->getMessage());
+            session()->flash('warning', 'Utilisateur créé, mais l\'email de bienvenue n\'a pas pu être envoyé : '.$e->getMessage());
         }
 
-        AuditLogger::log('store.admin_created', $admin, null, ['email' => $admin->email], null);
+        AuditLogger::log('store.admin_created', $user, null, ['email' => $user->email, 'role' => $role], null);
 
         return redirect()
             ->route('admin.stores.show', $store)
-            ->with('status', 'Administrateur magasin créé.');
+            ->with('status', 'Utilisateur « '.$user->name.' » créé avec le rôle '.(User::roleLabels()[$role] ?? $role).'.');
     }
 
     public function destroy(Store $store): RedirectResponse
