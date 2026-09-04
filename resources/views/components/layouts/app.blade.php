@@ -17,10 +17,13 @@
         <flux:sidebar sticky stashable class="border-r border-white/10">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-2 py-3" wire:navigate>
-                <x-app-logo class="size-8" href="#"></x-app-logo>
-                <span class="brand-wordmark text-lg font-semibold tracking-tight">LouerPro</span>
-            </a>
+            <div class="flex items-center gap-2 px-2 py-3">
+                <a href="{{ route('dashboard') }}" class="flex flex-1 items-center gap-2" wire:navigate>
+                    <x-app-logo class="size-8" href="#"></x-app-logo>
+                    <span class="brand-wordmark text-lg font-semibold tracking-tight">LouerPro</span>
+                </a>
+                <livewire:notifications-bell />
+            </div>
             <div class="mx-3 h-px bg-white/10"></div>
 
             @if (auth()->user()->is_super_admin)
@@ -198,8 +201,6 @@
             </nav>
 
             <div class="sidebar-footer space-y-2 border-t border-white/10 p-3">
-                <livewire:notifications-bell />
-
                 <flux:dropdown position="bottom" align="start">
                     <flux:button variant="ghost" inset="left" class="h-10 w-full rounded-lg px-3 text-left font-medium text-zinc-200 hover:bg-white/5 hover:text-white">
                         {{ strtoupper(app()->getLocale()) }}
@@ -266,7 +267,7 @@
 
             <flux:spacer />
 
-            <livewire:notifications-bell />
+            <livewire:notifications-bell variant="light" />
 
             <flux:dropdown position="top" align="end">
                 <flux:profile

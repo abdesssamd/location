@@ -8,6 +8,9 @@ class NotificationsBell extends Component
 {
     public bool $open = false;
 
+    /** Fond sur lequel la cloche est posée : 'dark' (barre latérale) ou 'light' (header mobile). */
+    public string $variant = 'dark';
+
     public function markAllRead(): void
     {
         auth()->user()->unreadNotifications->markAsRead();
