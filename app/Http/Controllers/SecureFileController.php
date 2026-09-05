@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\RentalItem;
 use App\Models\SubscriptionPayment;
+use App\Models\SupportMessage;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -41,6 +42,27 @@ class SecureFileController extends Controller
         $this->authorize('view', $expense);
 
         return $this->stream($expense->proof_path);
+    }
+
+    /**
+     * Pièce jointe d'un message de support : le magasin propriétaire du ticket
+     * ou l'équipe support. Une capture d'écran peut montrer des données
+     * clients, elle ne doit pas fuiter vers un autre magasin.
+     */
+    public function supportAttachment(SupportMessage $message, int $index): StreamedResponse
+    {
+        $ticket = $message->ticket;
+
+        abort_if($ticket === null, 404);
+
+        $user = auth()->user();
+
+        abort_unless(
+            $user->is_super_admin || (int) $user->store_id === (int) $ticket->store_id,
+            403
+        );
+
+        return $this->stream(($message->attachment_paths ?? [])[$index] ?? null);
     }
 
     /** Justificatif de paiement d'abonnement : le magasin concerné ou le super admin. */

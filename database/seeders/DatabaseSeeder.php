@@ -77,6 +77,8 @@ class DatabaseSeeder extends Seeder
             'payments.view', 'payments.create', 'payments.refund',
             // Données financières consolidées (chiffre d'affaires, marges, encaissements)
             'finance.view',
+            // Support technique : ouvert à tous les rôles, chacun peut rencontrer un bug
+            'support.view', 'support.create',
             // Rapports
             'reports.view',
             // Paramètres & équipe
@@ -110,6 +112,7 @@ class DatabaseSeeder extends Seeder
                 'payments.view', 'payments.create', 'payments.refund',
                 'finance.view',
                 'reports.view', 'settings.manage', 'users.manage',
+                'support.view', 'support.create',
             ],
             'cashier' => [
                 'customers.view', 'customers.create', 'customers.edit',
@@ -120,6 +123,7 @@ class DatabaseSeeder extends Seeder
                 'contracts.view', 'contracts.create', 'contracts.pdf',
                 'payments.view', 'payments.create', 'payments.refund',
                 'finance.view',
+                'support.view', 'support.create',
             ],
             'storekeeper' => [
                 'products.view', 'products.create', 'products.edit', 'stock.manage',
@@ -127,6 +131,7 @@ class DatabaseSeeder extends Seeder
                 'categories.view', 'rentals.return', 'rentals.checkout',
                 'rentals.view', 'contracts.view',
                 'suppliers.view', 'purchases.view', 'purchases.create',
+                'support.view', 'support.create',
             ],
             // Un employé accueille les clients et prépare les locations : il voit
             // les tarifs pour renseigner un client, mais aucune donnée financière
@@ -142,6 +147,7 @@ class DatabaseSeeder extends Seeder
                 'rentals.view', 'rentals.create', 'rentals.checkout',
                 'reservations.view', 'reservations.create',
                 'contracts.view',
+                'support.view', 'support.create',
             ],
         ];
 

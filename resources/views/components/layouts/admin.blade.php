@@ -22,6 +22,7 @@
                     <flux:navlist.item icon="building-storefront" :href="route('admin.stores.index')" :current="request()->routeIs('admin.stores.*')" wire:navigate>Magasins</flux:navlist.item>
                     <flux:navlist.item icon="tag" :href="route('admin.plans.index')" :current="request()->routeIs('admin.plans.*')" wire:navigate>Plans</flux:navlist.item>
                     <flux:navlist.item icon="credit-card" :href="route('admin.subscriptions.index')" :current="request()->routeIs('admin.subscriptions.*')" wire:navigate>Abonnements</flux:navlist.item>
+                    <flux:navlist.item icon="lifebuoy" :href="route('admin.support.index')" :current="request()->routeIs('admin.support.*')" :badge="\App\Services\SupportService::unreadCountForAdmin() ?: null" wire:navigate>Support</flux:navlist.item>
                     <flux:navlist.item icon="document-text" :href="route('admin.audits.index')" :current="request()->routeIs('admin.audits.*')" wire:navigate>Audit</flux:navlist.item>
                     <flux:navlist.item icon="cog-6-tooth" :href="route('admin.settings')" :current="request()->routeIs('admin.settings')" :badge="\App\Models\Store::where('status', 'pending')->count() ?: null" wire:navigate>Paramètres généraux</flux:navlist.item>
                 </flux:navlist.group>

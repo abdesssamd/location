@@ -223,7 +223,22 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['store.context', 'permission:contracts.pdf'])
         ->name('contracts.pack-return.pdf');
 
+    // --- Support technique ---
+    Route::get('support', \App\Livewire\Support\SupportCenter::class)
+        ->middleware(['store.context', 'permission:support.view'])
+        ->name('support.index');
+
+    Route::get('support/{ticket}', \App\Livewire\Support\SupportCenter::class)
+        ->middleware(['store.context', 'permission:support.view'])
+        ->whereNumber('ticket')
+        ->name('support.show');
+
     // --- Fichiers sensibles (jamais servis directement par /storage) ---
+    Route::get('files/support/{message}/{index}', [\App\Http\Controllers\SecureFileController::class, 'supportAttachment'])
+        ->middleware(['store.context', 'permission:support.view'])
+        ->whereNumber('index')
+        ->name('files.support');
+
     Route::get('files/payments/{payment}/{index}', [\App\Http\Controllers\SecureFileController::class, 'payment'])
         ->middleware(['store.context', 'permission:payments.view'])
         ->whereNumber('index')
@@ -251,6 +266,9 @@ Route::middleware(['auth'])->group(function () {
 // Espace Super Admin (accès global, sans scope tenant)
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::view('/', 'admin.index')->name('index');
+
+    Route::get('support', \App\Livewire\Admin\SupportInbox::class)->name('support.index');
+    Route::get('support/{ticket}', \App\Livewire\Admin\SupportInbox::class)->whereNumber('ticket')->name('support.show');
 
     Route::get('stores', [StoreController::class, 'index'])->name('stores.index');
     Route::get('stores/create', [StoreController::class, 'create'])->name('stores.create');

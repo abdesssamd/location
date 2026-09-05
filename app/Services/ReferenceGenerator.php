@@ -14,11 +14,19 @@ class ReferenceGenerator
         return 'STR-'.$group().'-'.$group().'-'.$group();
     }
 
+    /**
+     * La référence est unique sur toute la base, pas par magasin : le calcul
+     * du prochain numéro doit donc ignorer le scope tenant. Sinon deux magasins
+     * qui créent le même jour tombent sur le même numéro, et l'insertion viole
+     * la contrainte d'unicité.
+     */
     public static function reference(string $prefix, string $model, string $column = 'reference', ?string $year = null): string
     {
         $year ??= now()->format('Y');
         $prefix = strtoupper($prefix);
-        $next = (int) $model::max($column === 'number' ? $column : 'id') + 1;
+        $numberColumn = $column === 'number' ? $column : 'id';
+
+        $next = (int) $model::query()->withoutGlobalScopes()->max($numberColumn) + 1;
 
         return sprintf('%s-%s-%06d', $prefix, $year, $next);
     }

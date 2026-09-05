@@ -149,6 +149,17 @@
                     </a>
                 @endif
 
+                @if (Route::has('support.index') && auth()->user()->can('support.view'))
+                    @php($supportUnread = \App\Services\SupportService::unreadCountForStore(auth()->user()->store_id))
+                    <a href="{{ route('support.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('support.*')]) wire:navigate title="Support">
+                        <span class="nav-item__icon"><flux:icon.lifebuoy class="size-5" /></span>
+                        <span class="nav-item__label">Support</span>
+                        @if ($supportUnread > 0)
+                            <span class="ml-auto rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">{{ $supportUnread }}</span>
+                        @endif
+                    </a>
+                @endif
+
                 @if (Route::has('reports.index') && auth()->user()->can('reports.view'))
                     <a href="{{ route('reports.index') }}" @class(['nav-item','nav-item--active' => request()->routeIs('reports.*')]) wire:navigate title="Rapports">
                         <span class="nav-item__icon"><flux:icon.chart-bar class="size-5" /></span>
